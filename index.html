@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101c1b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fretboard Words">
+  <meta name="description" content="Learn the guitar fretboard by playing short note words, one note at a time.">
+  <title>Fretboard Words — practice notes like typing</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./script.js" defer></script>
+  <script src="./pwa.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon" aria-hidden="true">♮</span><span>Fretboard <b>Words</b></span></div>
+      <span class="top-tag">GUITAR NOTE TRAINER</span>
+    </header>
+
+    <section class="hero" aria-labelledby="title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="eyebrow-line"></span> PRACTICE STUDIO / 01</p>
+        <h1 id="title">Learn the neck.<br><em>One note at a time.</em></h1>
+        <p class="lede">Like typing a word, you’ll play a short sequence of notes. Find each one on the fretboard until the route feels automatic.</p>
+      </div>
+      <div class="hero-art" aria-hidden="true"><span class="art-fret f1"></span><span class="art-fret f2"></span><span class="art-fret f3"></span><span class="art-fret f4"></span><span class="art-string s1"></span><span class="art-string s2"></span><span class="art-string s3"></span><span class="art-dot d1"></span><span class="art-dot d2"></span><span class="art-dot d3"></span><span class="art-caption">SEE • FIND • PLAY</span></div>
+    </section>
+
+    <section class="workspace" aria-label="Practice workspace">
+      <div class="controls">
+        <div class="control-group">
+          <label for="range">PRACTICE AREA</label>
+          <select id="range">
+            <option value="starter">Starter · E, A, D strings / frets 0–5</option>
+            <option value="middle">Middle · all strings / frets 0–5</option>
+            <option value="full">Full neck · all strings / frets 0–12</option>
+            <option value="custom">Custom selection</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="deck">NOTE WORDS</label>
+          <select id="deck">
+            <option value="familiar">Familiar shapes</option>
+            <option value="random">Random selected notes</option>
+          </select>
+        </div>
+        <button id="sound" class="sound-btn" type="button" aria-pressed="true" title="Toggle sound"><span aria-hidden="true">♪</span> Sound on</button>
+      </div>
+
+      <section class="focus-panel" aria-labelledby="focusTitle">
+        <div class="focus-heading"><div><p class="panel-kicker">MAKE IT YOURS</p><h2 id="focusTitle">Focus your practice</h2></div><p id="selectionStatus">Pick the strings and notes you want to learn.</p></div>
+        <div class="focus-row"><div class="focus-label"><span>STRINGS</span><button id="allStrings" class="text-button" type="button">All strings</button></div><div id="stringChoices" class="choice-row" role="group" aria-label="Strings to practice"></div></div>
+        <div class="focus-row"><div class="focus-label"><span>NOTES</span><div><button id="allNotes" class="text-button" type="button">All</button><button id="naturalNotes" class="text-button" type="button">Naturals</button><button id="clearNotes" class="text-button" type="button">Clear</button></div></div><div id="noteChoices" class="choice-row" role="group" aria-label="Notes to practice"></div></div>
+      </section>
+
+      <section class="session-bar" aria-label="Session controls">
+        <div><p class="panel-kicker">PRACTICE SESSION</p><strong id="sessionState">Ready when you are</strong><span id="sessionTimer">00:00</span></div>
+        <div class="session-buttons"><button id="startSession" class="primary-button" type="button" disabled>Start session <span aria-hidden="true">→</span></button><button id="endSession" class="primary-button end-button" type="button" hidden>End &amp; save session</button></div>
+      </section>
+
+      <div class="prompt-panel">
+        <div class="prompt-heading"><div><p class="panel-kicker">CURRENT WORD</p><h2 id="wordName">Ready to practice</h2></div><span id="wordNumber" class="word-number">PRESS START</span></div>
+        <div id="noteSequence" class="note-sequence" aria-label="Notes to play"></div>
+        <div class="prompt-bottom"><p id="feedback" class="feedback" role="status" aria-live="polite">Choose your notes and strings, then start a session.</p><button id="hint" class="text-button" type="button" disabled>Show a hint <span aria-hidden="true">↗</span></button></div>
+      </div>
+
+      <div class="board-panel">
+        <div class="board-header"><div><p class="panel-kicker">THE FRETBOARD</p><h2>Find the note</h2></div><div class="board-legend"><span class="legend-dot"></span> Tap a fret to answer</div></div>
+        <div id="fretboard" class="fretboard-wrap" role="group" aria-label="Interactive guitar fretboard"></div>
+        <div class="board-footer"><span>STANDARD TUNING <b>E A D G B E</b></span><span id="rangeCaption">LOW E / A / D · FRETS 0–5</span></div>
+      </div>
+
+      <div class="bottom-grid">
+        <section class="stats-card" aria-label="Session statistics"><div class="section-heading"><span class="panel-kicker">YOUR SESSION</span><span id="sessionStatus" class="small-status">Not started</span></div><div class="stat-row"><div><strong id="completed">0</strong><span>words played</span></div><div><strong id="accuracy">—</strong><span>accuracy</span></div><div><strong id="streak">0</strong><span>best streak</span></div></div></section>
+        <section class="how-card"><span class="panel-kicker">HOW TO PRACTICE</span><p><b>See → find → play.</b> Say the note out loud before you tap. When these shapes feel easy, switch to random notes, then expand the neck. Random practice cycles through every playable note evenly and rotates its available strings.</p></section>
+      </div>
+    </section>
+
+    <section class="dashboard" aria-labelledby="dashboardTitle">
+      <div class="dashboard-heading"><div><p class="eyebrow"><span class="eyebrow-line"></span> YOUR PROGRESS / 02</p><h2 id="dashboardTitle">Practice history</h2><p>Every finished session stays on this device, in this browser.</p></div><div class="data-actions"><button id="exportData" class="secondary-button" type="button">Export data</button><button id="importData" class="secondary-button" type="button">Import data</button><input id="importFile" type="file" accept="application/json,.json" hidden></div></div>
+      <p id="storageMessage" class="storage-message" role="status"></p>
+      <div class="dashboard-filter"><label for="historyFilter">COMPARE SESSIONS</label><select id="historyFilter"><option value="all">All sessions</option></select></div>
+      <div id="dashboardSummary" class="dashboard-summary"></div>
+      <div class="chart-grid"><section class="chart-card"><p class="panel-kicker">SESSION TREND</p><h3>Accuracy</h3><div id="accuracyChart" class="chart-area"></div></section><section class="chart-card"><p class="panel-kicker">SESSION TREND</p><h3>Time to correct note</h3><div id="speedChart" class="chart-area"></div></section></div>
+      <div class="analysis-grid"><section class="analysis-card"><p class="panel-kicker">WHERE TO FOCUS</p><h3>Note × string</h3><p class="analysis-caption">First-try accuracy in string-specific drills. More practice makes these cells more useful.</p><div id="noteHeatmap" class="heatmap-wrap"></div></section><section class="analysis-card"><p class="panel-kicker">RECENT PRACTICE</p><h3>Sessions</h3><div id="sessionHistory" class="history-list"></div></section></div>
+    </section>
+    <footer>Built for slow, accurate repetitions. Speed comes later.</footer>
+  </main>
+</body>
+</html>

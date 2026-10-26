@@ -303,11 +303,29 @@ function renderSequence() {
     root.append(token);
   });
 }
+function makeFretCell(string, fret) {
+  const midi = string.open + fret;
+  const cell = document.createElement('td');
+  cell.className = `fret-cell${fret === 0 ? ' open' : ''}`;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'fret-button';
+  button.setAttribute('aria-label', `${string.full} string, fret ${fret}, ${noteFor(midi)}`);
+  button.dataset.note = noteFor(midi);
+  button.dataset.stringOpen = String(string.open);
+  button.dataset.fret = String(fret);
+  button.dataset.midi = String(midi);
+  button.dataset.location = `${string.full} string, ${fret === 0 ? 'open' : `fret ${fret}`}`;
+  button.addEventListener('click', () => answer(button));
+  cell.append(button);
+  return cell;
+}
 function renderBoard() {
   const maxFret = state.maxFret;
   const strings = STRINGS.filter(string => state.selectedStrings.has(string.open));
   const table = document.createElement('table');
-  table.className = `fretboard ${maxFret === 12 ? 'full' : 'starter'}`;
+  table.className = `fretboard horizontal ${maxFret === 12 ? 'full' : 'starter'}`;
+  table.setAttribute('aria-label', 'Guitar strings as rows and frets as columns');
   const head = document.createElement('thead');
   const headerRow = document.createElement('tr');
   const stringHead = document.createElement('th');
@@ -327,27 +345,42 @@ function renderBoard() {
     nameCell.className = 'string-name';
     nameCell.textContent = string.name;
     row.append(nameCell);
-    for (let fret = 0; fret <= maxFret; fret++) {
-      const midi = string.open + fret;
-      const cell = document.createElement('td');
-      cell.className = `fret-cell${fret === 0 ? ' open' : ''}`;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'fret-button';
-      button.setAttribute('aria-label', `${string.full} string, fret ${fret}, ${noteFor(midi)}`);
-      button.dataset.note = noteFor(midi);
-      button.dataset.stringOpen = String(string.open);
-      button.dataset.fret = String(fret);
-      button.dataset.midi = String(midi);
-      button.dataset.location = `${string.full} string, ${fret === 0 ? 'open' : `fret ${fret}`}`;
-      button.addEventListener('click', () => answer(button));
-      cell.append(button);
-      row.append(cell);
-    }
+    for (let fret = 0; fret <= maxFret; fret++) row.append(makeFretCell(string, fret));
     body.append(row);
   });
   table.append(body);
-  $('fretboard').replaceChildren(table);
+
+  const vertical = document.createElement('table');
+  vertical.className = 'fretboard vertical';
+  vertical.setAttribute('aria-label', 'Guitar strings as columns and frets as rows');
+  const verticalHead = document.createElement('thead');
+  const verticalHeadRow = document.createElement('tr');
+  const fretHead = document.createElement('th');
+  fretHead.textContent = 'FRET';
+  verticalHeadRow.append(fretHead);
+  const leftToRightStrings = [...strings].reverse();
+  leftToRightStrings.forEach(string => {
+    const th = document.createElement('th');
+    th.scope = 'col';
+    th.textContent = `${string.name}${STRINGS.indexOf(string) + 1}`;
+    th.setAttribute('aria-label', `${string.full} string`);
+    verticalHeadRow.append(th);
+  });
+  verticalHead.append(verticalHeadRow);
+  vertical.append(verticalHead);
+  const verticalBody = document.createElement('tbody');
+  for (let fret = 0; fret <= maxFret; fret++) {
+    const row = document.createElement('tr');
+    const label = document.createElement('th');
+    label.scope = 'row';
+    label.className = 'fret-number';
+    label.textContent = fret === 0 ? 'OPEN' : String(fret).padStart(2, '0');
+    row.append(label);
+    leftToRightStrings.forEach(string => row.append(makeFretCell(string, fret)));
+    verticalBody.append(row);
+  }
+  vertical.append(verticalBody);
+  $('fretboard').replaceChildren(table, vertical);
   $('rangeCaption').textContent = `${strings.map(string => string.full.toUpperCase()).join(' / ')} · FRETS 0–${maxFret}`;
 }
 function renderChoices() {

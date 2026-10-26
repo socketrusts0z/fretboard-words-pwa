@@ -12,6 +12,7 @@
   .fretboard.vertical th{padding:0;color:#a9c2b0;font-size:10px;letter-spacing:0;text-align:center}
   .fretboard.vertical thead th{position:sticky;top:0;z-index:3;height:34px;background:#1b2d28}
   .fretboard.vertical th:first-child{width:36px}
+  .fretboard.vertical th:not(:first-child){width:auto}
   .fretboard.vertical .fret-number{font-size:10px;color:#d3e2cf}
   .fretboard.vertical td{height:47px}
   .fretboard.vertical .fret-cell{border-right:0;border-bottom:2px solid #9eaa89;background:#2b4438}

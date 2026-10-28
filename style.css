@@ -32,3 +32,4 @@
 @media(max-width:850px){.analysis-grid{grid-template-columns:minmax(0,1fr)}.dashboard-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.chart-grid,.bottom-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:550px){.shell,.workspace,.focus-panel,.session-bar,.prompt-panel,.board-panel,.stats-card,.how-card{min-width:0;max-width:100%}.board-footer,.prompt-bottom{flex-wrap:wrap}.dashboard-summary{gap:9px}.summary-tile{padding:15px 12px}}
+@media(max-width:550px){.heatmap{min-width:0;width:100%;table-layout:fixed;border-spacing:2px}.heatmap th{font-size:9px;letter-spacing:0;overflow-wrap:anywhere}.heatmap td{min-width:0;font-size:9px}.timing-heatmap td{font-size:9px}}

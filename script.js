@@ -131,7 +131,7 @@ function updateControls() {
   $('deck').disabled = active;
   for (const id of ['allStrings', 'allNotes', 'naturalNotes', 'clearNotes']) $(id).disabled = active;
   document.querySelectorAll('.choice-chip').forEach(button => button.disabled = active);
-  document.querySelectorAll('.fret-button').forEach(button => button.disabled = active && (state.locked || !state.word));
+  document.querySelectorAll('.fret-button').forEach(button => button.disabled = active && (state.locked || !state.word || button.dataset.inPractice !== 'true'));
   $('hint').disabled = !active || state.locked || !state.word;
   $('exportData').disabled = active;
   $('importData').disabled = active;
@@ -322,9 +322,20 @@ function makeFretCell(string, fret) {
   cell.append(button);
   return cell;
 }
+function updateBoardPracticeArea() {
+  document.querySelectorAll('.fret-button').forEach(button => {
+    const inPractice = state.selectedStrings.has(Number(button.dataset.stringOpen)) && Number(button.dataset.fret) <= state.maxFret;
+    button.dataset.inPractice = String(inPractice);
+    button.parentElement.classList.toggle('outside-practice', !inPractice);
+  });
+  document.querySelectorAll('[data-string-head]').forEach(cell => cell.classList.toggle('outside-practice', !state.selectedStrings.has(Number(cell.dataset.stringHead))));
+  document.querySelectorAll('[data-fret-head]').forEach(cell => cell.classList.toggle('outside-practice', Number(cell.dataset.fretHead) > state.maxFret));
+  const selected = STRINGS.filter(string => state.selectedStrings.has(string.open));
+  $('rangeCaption').textContent = `${selected.map(string => string.full.toUpperCase()).join(' / ')} · FRETS 0–${state.maxFret}`;
+}
 function renderBoard() {
-  const maxFret = state.maxFret;
-  const strings = STRINGS.filter(string => state.selectedStrings.has(string.open));
+  const maxFret = 12;
+  const strings = STRINGS;
   const table = document.createElement('table');
   if (boardBreakpoint.matches) {
     table.className = 'fretboard vertical';
@@ -336,6 +347,7 @@ function renderBoard() {
     leftToRightStrings.forEach(string => {
       const th = createElement('th', '', `${string.name}${STRINGS.indexOf(string) + 1}`);
       th.scope = 'col';
+      th.dataset.stringHead = String(string.open);
       th.setAttribute('aria-label', `${string.full} string`);
       headerRow.append(th);
     });
@@ -346,31 +358,38 @@ function renderBoard() {
       const row = document.createElement('tr');
       const label = createElement('th', 'fret-number', fret === 0 ? 'OPEN' : String(fret).padStart(2, '0'));
       label.scope = 'row';
+      label.dataset.fretHead = String(fret);
       row.append(label);
       leftToRightStrings.forEach(string => row.append(makeFretCell(string, fret)));
       body.append(row);
     }
     table.append(body);
   } else {
-    table.className = `fretboard horizontal ${maxFret === 12 ? 'full' : 'starter'}`;
+    table.className = 'fretboard horizontal full';
     table.setAttribute('aria-label', 'Guitar strings as rows and frets as columns');
     const head = document.createElement('thead');
     const headerRow = document.createElement('tr');
     headerRow.append(createElement('th', '', 'STRING'));
-    for (let fret = 0; fret <= maxFret; fret++) headerRow.append(createElement('th', '', fret === 0 ? 'OPEN' : String(fret).padStart(2, '0')));
+    for (let fret = 0; fret <= maxFret; fret++) {
+      const th = createElement('th', '', fret === 0 ? 'OPEN' : String(fret).padStart(2, '0'));
+      th.dataset.fretHead = String(fret);
+      headerRow.append(th);
+    }
     head.append(headerRow);
     table.append(head);
     const body = document.createElement('tbody');
     strings.forEach(string => {
       const row = document.createElement('tr');
-      row.append(createElement('td', 'string-name', string.name));
+      const label = createElement('td', 'string-name', string.name);
+      label.dataset.stringHead = String(string.open);
+      row.append(label);
       for (let fret = 0; fret <= maxFret; fret++) row.append(makeFretCell(string, fret));
       body.append(row);
     });
     table.append(body);
   }
   $('fretboard').replaceChildren(table);
-  $('rangeCaption').textContent = `${strings.map(string => string.full.toUpperCase()).join(' / ')} · FRETS 0–${maxFret}`;
+  updateBoardPracticeArea();
 }
 function renderChoices() {
   const stringRoot = $('stringChoices');
@@ -412,7 +431,7 @@ function renderChoices() {
   const count = playableNotes().length;
   $('selectionStatus').textContent = state.selectedNotes.size === 0 ? 'Select one or more notes to begin.' : count === 0 ? 'No selected notes are reachable here.' : `${state.selectedStrings.size} string${state.selectedStrings.size === 1 ? '' : 's'} · ${count} playable note${count === 1 ? '' : 's'}`;
 }
-function selectionChanged(boardChanged = false) { if (state.session) return; renderChoices(); if (boardChanged) renderBoard(); resetLiveStats(); showIdle(); }
+function selectionChanged(boardChanged = false) { if (state.session) return; renderChoices(); if (boardChanged) updateBoardPracticeArea(); resetLiveStats(); showIdle(); }
 function clearBoardMarkers() {
   document.querySelectorAll('.fret-button').forEach(button => {
     if (button.classList.contains('revealed')) button.textContent = '';
@@ -462,7 +481,7 @@ function answer(button) {
   clearBoardMarkers();
   const played = button.dataset.note;
   const target = state.word.steps[state.index];
-  const correct = played === target.note && (target.stringOpen === null || Number(button.dataset.stringOpen) === target.stringOpen);
+  const correct = button.dataset.inPractice === 'true' && played === target.note && (target.stringOpen === null || Number(button.dataset.stringOpen) === target.stringOpen);
   const prompt = state.session.prompts[state.session.prompts.length - 1];
   prompt.answers.push({ at: new Date().toISOString(), note: played, stringOpen: Number(button.dataset.stringOpen), fret: Number(button.dataset.fret), midi: Number(button.dataset.midi), correct, responseMs: Math.max(0, Math.round(performance.now() - state.promptStartedMono)) });
   state.attempts++;
@@ -724,7 +743,7 @@ $('hint').addEventListener('click', () => {
   if (state.locked || !state.word) return;
   clearBoardMarkers();
   const target = state.word.steps[state.index];
-  const matching = [...document.querySelectorAll('.fret-button')].filter(button => button.dataset.note === target.note && (target.stringOpen === null || Number(button.dataset.stringOpen) === target.stringOpen));
+  const matching = [...document.querySelectorAll('.fret-button')].filter(button => button.dataset.inPractice === 'true' && button.dataset.note === target.note && (target.stringOpen === null || Number(button.dataset.stringOpen) === target.stringOpen));
   matching.forEach(button => button.classList.add('hint'));
   $('feedback').textContent = `Highlighted spots play ${describeStep(target)}. Pick any one.`;
   $('feedback').className = 'feedback';

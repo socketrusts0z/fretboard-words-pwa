@@ -581,6 +581,54 @@ function renderHeatmap(sessions) {
   table.append(body);
   root.append(table);
 }
+function renderNoteTiming(sessions) {
+  const root = $('noteTiming');
+  root.replaceChildren();
+  const timings = new Map();
+  for (const session of sessions) for (const prompt of session.prompts) {
+    const answer = prompt.answers?.find(item => item.correct);
+    if (!answer || !Number.isFinite(answer.responseMs)) continue;
+    const key = `${prompt.note}:${answer.stringOpen}`;
+    if (!timings.has(key)) timings.set(key, []);
+    timings.get(key).push(answer.responseMs);
+  }
+  if (!timings.size) {
+    root.append(createElement('p', 'empty-state', 'Finish a session with correct notes to see your time on each string.'));
+    return;
+  }
+  const table = createElement('table', 'heatmap timing-heatmap');
+  const head = document.createElement('thead');
+  const header = document.createElement('tr');
+  header.append(createElement('th', '', 'NOTE'));
+  STRINGS.forEach((string, index) => {
+    const cell = createElement('th', '', `${string.name}${index + 1}`);
+    cell.title = `${string.full} string`;
+    header.append(cell);
+  });
+  head.append(header);
+  table.append(head);
+  const body = document.createElement('tbody');
+  NOTES.forEach(note => {
+    const row = document.createElement('tr');
+    row.append(createElement('th', '', note));
+    STRINGS.forEach(string => {
+      const cell = document.createElement('td');
+      const values = timings.get(`${note}:${string.open}`);
+      if (values?.length) {
+        values.sort((a, b) => a - b);
+        const middle = Math.floor(values.length / 2);
+        const median = values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
+        cell.className = 'has-data';
+        cell.append(createElement('span', '', formatTime(median)), createElement('small', '', `n=${values.length}`));
+        cell.title = `${note} on ${string.full}: ${formatTime(median)} median across ${values.length} correct note${values.length === 1 ? '' : 's'}`;
+      } else { cell.className = 'no-data'; cell.textContent = '—'; }
+      row.append(cell);
+    });
+    body.append(row);
+  });
+  table.append(body);
+  root.append(table);
+}
 function renderHistory(sessions) {
   const root = $('sessionHistory');
   root.replaceChildren();
@@ -634,6 +682,7 @@ function renderDashboard() {
   renderBarChart('accuracyChart', selected, 'accuracy');
   renderBarChart('speedChart', selected, 'speed');
   renderHeatmap(selected);
+  renderNoteTiming(selected);
   renderHistory(selected);
 }
 function exportHistory() {

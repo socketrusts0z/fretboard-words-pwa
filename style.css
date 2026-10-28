@@ -25,3 +25,10 @@
 .fret-button.revealed{background:var(--mint);color:#183128;font-weight:700}
 
 .timing-card{margin-top:15px}.timing-heatmap{min-width:0;border-spacing:3px}.timing-heatmap td{height:42px;min-width:0;font-size:11px}.timing-heatmap td.has-data{background:#2e493b;color:#e2f2df}.timing-heatmap small{display:block;color:#a8c4ad;font-size:9px;margin-top:2px}@media(max-width:500px){.timing-heatmap th{font-size:9px}.timing-heatmap td{font-size:10px}}
+
+/* Keep wide analysis tables inside their cards on narrow screens. */
+.dashboard,.dashboard-summary,.chart-grid,.analysis-grid,.bottom-grid,.chart-card,.analysis-card,.summary-tile,.heatmap-wrap{min-width:0;max-width:100%}
+.heatmap-wrap{width:100%;overflow-x:auto}
+@media(max-width:850px){.analysis-grid{grid-template-columns:minmax(0,1fr)}.dashboard-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.chart-grid,.bottom-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:550px){.shell,.workspace,.focus-panel,.session-bar,.prompt-panel,.board-panel,.stats-card,.how-card{min-width:0;max-width:100%}.board-footer,.prompt-bottom{flex-wrap:wrap}.dashboard-summary{gap:9px}.summary-tile{padding:15px 12px}}

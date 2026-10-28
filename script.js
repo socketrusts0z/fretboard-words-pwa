@@ -18,6 +18,7 @@ const FAMILIAR = [
   { name: 'Back down', notes: ['G', 'F', 'E', 'D'] }
 ];
 const $ = id => document.getElementById(id);
+const boardBreakpoint = window.matchMedia('(max-width: 820px)');
 const state = { range: 'starter', maxFret: 5, selectedStrings: new Set([50, 45, 40]), selectedNotes: new Set(NOTES), deck: 'familiar', word: null, index: 0, words: 0, attempts: 0, hits: 0, streak: 0, best: 0, sound: true, locked: true, lastWord: '', audio: null, nextTimer: null, session: null, history: [], storage: null, storageReady: false, saveQueue: Promise.resolve(), promptStartedMono: 0 };
 const DB_NAME = 'fretboard-words-history';
 const FALLBACK_KEY = 'fretboard-words-history-v1';
@@ -325,69 +326,55 @@ function renderBoard() {
   const maxFret = state.maxFret;
   const strings = STRINGS.filter(string => state.selectedStrings.has(string.open));
   const table = document.createElement('table');
-  table.className = `fretboard horizontal ${maxFret === 12 ? 'full' : 'starter'}`;
-  table.setAttribute('aria-label', 'Guitar strings as rows and frets as columns');
-  const head = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-  const stringHead = document.createElement('th');
-  stringHead.textContent = 'STRING';
-  headerRow.append(stringHead);
-  for (let fret = 0; fret <= maxFret; fret++) {
-    const th = document.createElement('th');
-    th.textContent = fret === 0 ? 'OPEN' : String(fret).padStart(2, '0');
-    headerRow.append(th);
+  if (boardBreakpoint.matches) {
+    table.className = 'fretboard vertical';
+    table.setAttribute('aria-label', 'Guitar strings as columns and frets as rows');
+    const head = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    headerRow.append(createElement('th', '', 'FRET'));
+    const leftToRightStrings = [...strings].reverse();
+    leftToRightStrings.forEach(string => {
+      const th = createElement('th', '', `${string.name}${STRINGS.indexOf(string) + 1}`);
+      th.scope = 'col';
+      th.setAttribute('aria-label', `${string.full} string`);
+      headerRow.append(th);
+    });
+    head.append(headerRow);
+    table.append(head);
+    const body = document.createElement('tbody');
+    for (let fret = 0; fret <= maxFret; fret++) {
+      const row = document.createElement('tr');
+      const label = createElement('th', 'fret-number', fret === 0 ? 'OPEN' : String(fret).padStart(2, '0'));
+      label.scope = 'row';
+      row.append(label);
+      leftToRightStrings.forEach(string => row.append(makeFretCell(string, fret)));
+      body.append(row);
+    }
+    table.append(body);
+  } else {
+    table.className = `fretboard horizontal ${maxFret === 12 ? 'full' : 'starter'}`;
+    table.setAttribute('aria-label', 'Guitar strings as rows and frets as columns');
+    const head = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    headerRow.append(createElement('th', '', 'STRING'));
+    for (let fret = 0; fret <= maxFret; fret++) headerRow.append(createElement('th', '', fret === 0 ? 'OPEN' : String(fret).padStart(2, '0')));
+    head.append(headerRow);
+    table.append(head);
+    const body = document.createElement('tbody');
+    strings.forEach(string => {
+      const row = document.createElement('tr');
+      row.append(createElement('td', 'string-name', string.name));
+      for (let fret = 0; fret <= maxFret; fret++) row.append(makeFretCell(string, fret));
+      body.append(row);
+    });
+    table.append(body);
   }
-  head.append(headerRow);
-  table.append(head);
-  const body = document.createElement('tbody');
-  strings.forEach(string => {
-    const row = document.createElement('tr');
-    const nameCell = document.createElement('td');
-    nameCell.className = 'string-name';
-    nameCell.textContent = string.name;
-    row.append(nameCell);
-    for (let fret = 0; fret <= maxFret; fret++) row.append(makeFretCell(string, fret));
-    body.append(row);
-  });
-  table.append(body);
-
-  const vertical = document.createElement('table');
-  vertical.className = 'fretboard vertical';
-  vertical.setAttribute('aria-label', 'Guitar strings as columns and frets as rows');
-  const verticalHead = document.createElement('thead');
-  const verticalHeadRow = document.createElement('tr');
-  const fretHead = document.createElement('th');
-  fretHead.textContent = 'FRET';
-  verticalHeadRow.append(fretHead);
-  const leftToRightStrings = [...strings].reverse();
-  leftToRightStrings.forEach(string => {
-    const th = document.createElement('th');
-    th.scope = 'col';
-    th.textContent = `${string.name}${STRINGS.indexOf(string) + 1}`;
-    th.setAttribute('aria-label', `${string.full} string`);
-    verticalHeadRow.append(th);
-  });
-  verticalHead.append(verticalHeadRow);
-  vertical.append(verticalHead);
-  const verticalBody = document.createElement('tbody');
-  for (let fret = 0; fret <= maxFret; fret++) {
-    const row = document.createElement('tr');
-    const label = document.createElement('th');
-    label.scope = 'row';
-    label.className = 'fret-number';
-    label.textContent = fret === 0 ? 'OPEN' : String(fret).padStart(2, '0');
-    row.append(label);
-    leftToRightStrings.forEach(string => row.append(makeFretCell(string, fret)));
-    verticalBody.append(row);
-  }
-  vertical.append(verticalBody);
-  $('fretboard').replaceChildren(table, vertical);
+  $('fretboard').replaceChildren(table);
   $('rangeCaption').textContent = `${strings.map(string => string.full.toUpperCase()).join(' / ')} · FRETS 0–${maxFret}`;
 }
 function renderChoices() {
   const stringRoot = $('stringChoices');
-  stringRoot.replaceChildren();
-  STRINGS.forEach(string => {
+  if (!stringRoot.childElementCount) STRINGS.forEach(string => {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'choice-chip';
@@ -401,13 +388,13 @@ function renderChoices() {
       } else state.selectedStrings.add(string.open);
       state.range = 'custom';
       $('range').value = 'custom';
-      selectionChanged();
+      selectionChanged(true);
     });
     stringRoot.append(chip);
   });
+  [...stringRoot.children].forEach((chip, index) => chip.setAttribute('aria-pressed', String(state.selectedStrings.has(STRINGS[index].open))));
   const noteRoot = $('noteChoices');
-  noteRoot.replaceChildren();
-  NOTES.forEach(note => {
+  if (!noteRoot.childElementCount) NOTES.forEach(note => {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'choice-chip';
@@ -421,10 +408,11 @@ function renderChoices() {
     });
     noteRoot.append(chip);
   });
+  [...noteRoot.children].forEach((chip, index) => chip.setAttribute('aria-pressed', String(state.selectedNotes.has(NOTES[index]))));
   const count = playableNotes().length;
   $('selectionStatus').textContent = state.selectedNotes.size === 0 ? 'Select one or more notes to begin.' : count === 0 ? 'No selected notes are reachable here.' : `${state.selectedStrings.size} string${state.selectedStrings.size === 1 ? '' : 's'} · ${count} playable note${count === 1 ? '' : 's'}`;
 }
-function selectionChanged() { if (state.session) return; renderChoices(); renderBoard(); resetLiveStats(); showIdle(); }
+function selectionChanged(boardChanged = false) { if (state.session) return; renderChoices(); if (boardChanged) renderBoard(); resetLiveStats(); showIdle(); }
 function clearBoardMarkers() {
   document.querySelectorAll('.fret-button').forEach(button => {
     if (button.classList.contains('revealed')) button.textContent = '';
@@ -746,10 +734,10 @@ $('range').addEventListener('change', event => {
   if (state.range === 'starter') { state.selectedStrings = new Set([50, 45, 40]); state.maxFret = 5; }
   if (state.range === 'middle') { state.selectedStrings = new Set(STRINGS.map(string => string.open)); state.maxFret = 5; }
   if (state.range === 'full') { state.selectedStrings = new Set(STRINGS.map(string => string.open)); state.maxFret = 12; }
-  selectionChanged();
+  selectionChanged(true);
 });
 $('deck').addEventListener('change', event => { state.deck = event.target.value; selectionChanged(); });
-$('allStrings').addEventListener('click', () => { state.selectedStrings = new Set(STRINGS.map(string => string.open)); state.range = 'custom'; $('range').value = 'custom'; selectionChanged(); });
+$('allStrings').addEventListener('click', () => { state.selectedStrings = new Set(STRINGS.map(string => string.open)); state.range = 'custom'; $('range').value = 'custom'; selectionChanged(true); });
 $('allNotes').addEventListener('click', () => { state.selectedNotes = new Set(NOTES); selectionChanged(); });
 $('naturalNotes').addEventListener('click', () => { state.selectedNotes = new Set(NOTES.filter(note => !note.includes('♯'))); selectionChanged(); });
 $('clearNotes').addEventListener('click', () => { state.selectedNotes = new Set(); selectionChanged(); });
@@ -766,6 +754,8 @@ $('sound').addEventListener('click', () => {
 });
 renderChoices();
 renderBoard();
+if (boardBreakpoint.addEventListener) boardBreakpoint.addEventListener('change', () => { renderBoard(); updateControls(); });
+else boardBreakpoint.addListener(() => { renderBoard(); updateControls(); });
 resetLiveStats();
 showIdle();
 initializeStorage();

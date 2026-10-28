@@ -67,11 +67,11 @@
       <div class="prompt-panel">
         <div class="prompt-heading"><div><p class="panel-kicker">CURRENT WORD</p><h2 id="wordName">Ready to practice</h2></div><span id="wordNumber" class="word-number">PRESS START</span></div>
         <div id="noteSequence" class="note-sequence" aria-label="Notes to play"></div>
-        <div class="prompt-bottom"><p id="feedback" class="feedback" role="status" aria-live="polite">Choose your notes and strings, then start a session.</p><button id="hint" class="text-button" type="button" disabled>Show a hint <span aria-hidden="true">↗</span></button></div>
+        <div class="prompt-bottom"><p id="feedback" class="feedback" role="status" aria-live="polite">Tap any fret to reveal its note, or start a session.</p><button id="hint" class="text-button" type="button" disabled>Show a hint <span aria-hidden="true">↗</span></button></div>
       </div>
 
       <div class="board-panel">
-        <div class="board-header"><div><p class="panel-kicker">THE FRETBOARD</p><h2>Find the note</h2></div><div class="board-legend"><span class="legend-dot"></span> Tap a fret to answer</div></div>
+        <div class="board-header"><div><p class="panel-kicker">THE FRETBOARD</p><h2>Find the note</h2></div><div class="board-legend"><span class="legend-dot"></span> <span id="boardInstruction">Tap a fret to reveal its note</span></div></div>
         <div id="fretboard" class="fretboard-wrap" role="group" aria-label="Interactive guitar fretboard"></div>
         <div class="board-footer"><span>STANDARD TUNING <b>E A D G B E</b></span><span id="rangeCaption">LOW E / A / D · FRETS 0–5</span></div>
       </div>

@@ -130,14 +130,15 @@ function updateControls() {
   $('deck').disabled = active;
   for (const id of ['allStrings', 'allNotes', 'naturalNotes', 'clearNotes']) $(id).disabled = active;
   document.querySelectorAll('.choice-chip').forEach(button => button.disabled = active);
-  document.querySelectorAll('.fret-button').forEach(button => button.disabled = !active || state.locked || !state.word);
+  document.querySelectorAll('.fret-button').forEach(button => button.disabled = active && (state.locked || !state.word));
   $('hint').disabled = !active || state.locked || !state.word;
   $('exportData').disabled = active;
   $('importData').disabled = active;
   $('sessionState').textContent = active ? 'Session in progress' : 'Ready when you are';
   $('sessionStatus').textContent = active ? 'Recording' : 'Not started';
+  $('boardInstruction').textContent = active ? 'Tap a fret to answer' : 'Tap a fret to reveal its note';
 }
-function showIdle(message = 'Choose your notes and strings, then start a session.') {
+function showIdle(message = 'Tap any fret to reveal its note, or start a session.') {
   state.word = null;
   state.locked = true;
   $('wordName').textContent = message.startsWith('Session saved') ? 'Session saved' : 'Ready to practice';
@@ -424,7 +425,12 @@ function renderChoices() {
   $('selectionStatus').textContent = state.selectedNotes.size === 0 ? 'Select one or more notes to begin.' : count === 0 ? 'No selected notes are reachable here.' : `${state.selectedStrings.size} string${state.selectedStrings.size === 1 ? '' : 's'} · ${count} playable note${count === 1 ? '' : 's'}`;
 }
 function selectionChanged() { if (state.session) return; renderChoices(); renderBoard(); resetLiveStats(); showIdle(); }
-function clearBoardMarkers() { document.querySelectorAll('.fret-button').forEach(button => button.classList.remove('hint', 'wrong', 'correct-hit')); }
+function clearBoardMarkers() {
+  document.querySelectorAll('.fret-button').forEach(button => {
+    if (button.classList.contains('revealed')) button.textContent = '';
+    button.classList.remove('hint', 'wrong', 'correct-hit', 'revealed');
+  });
+}
 function play(midi) {
   if (!state.sound) return;
   try {
@@ -451,7 +457,20 @@ function updateStats() {
   $('streak').textContent = state.best;
 }
 function answer(button) {
-  if (state.locked || !state.word || !state.session) return;
+  if (!state.session) {
+    const note = button.dataset.note;
+    document.querySelectorAll('.fret-button').forEach(other => {
+      if (other.dataset.stringOpen === button.dataset.stringOpen && other.dataset.fret === button.dataset.fret) {
+        other.textContent = note;
+        other.classList.add('revealed');
+      }
+    });
+    play(Number(button.dataset.midi));
+    $('feedback').textContent = `${note} at ${button.dataset.location}.`;
+    $('feedback').className = 'feedback';
+    return;
+  }
+  if (state.locked || !state.word) return;
   clearBoardMarkers();
   const played = button.dataset.note;
   const target = state.word.steps[state.index];

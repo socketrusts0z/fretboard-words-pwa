@@ -48,3 +48,8 @@
 .fretboard .fret-cell.outside-practice .fret-button.study-label{opacity:.9}
 .fretboard .fret-cell.outside-practice .fret-button.study-label.revealed{opacity:1}
 @media(max-width:550px){.board-study-controls select{flex:1 1 100%}.board-study-controls span{flex:1 1 100%}}
+
+.session-buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:9px}
+.session-buttons .guitar-button{background:#304c3c;color:var(--mint);border-color:#71957b}
+.session-buttons .guitar-button:hover{background:#3b604a}
+@media(max-width:650px){.session-buttons{justify-content:stretch}.session-buttons .primary-button{width:100%}}

@@ -115,7 +115,9 @@ function playableNotes() {
   });
   return NOTES.filter(note => state.selectedNotes.has(note) && reachable.has(note));
 }
-function configSnapshot() { return { range: state.range, maxFret: state.maxFret, selectedStrings: [...state.selectedStrings], selectedNotes: [...state.selectedNotes], deck: state.deck }; }
+function configSnapshot(mode) { return { range: state.range, maxFret: state.maxFret, selectedStrings: [...state.selectedStrings], selectedNotes: [...state.selectedNotes], deck: state.deck, mode }; }
+function isGuitarPractice(session = state.session) { return session?.config?.mode === 'guitar'; }
+function promptInstruction(step) { return isGuitarPractice() ? `Play ${describeStep(step)} on your guitar, then tap the matching fret here.` : `Find ${describeStep(step)}. Tap the matching fret.`; }
 function sessionSummary(session) {
   const prompts = (session.prompts || []).filter(prompt => prompt.answers?.length);
   const answers = prompts.flatMap(prompt => prompt.answers);
@@ -132,8 +134,10 @@ function resetLiveStats() {
 function updateControls() {
   const active = !!state.session && state.session.status === 'active';
   $('startSession').hidden = active;
+  $('startGuitarSession').hidden = active;
   $('endSession').hidden = !active;
   $('startSession').disabled = !state.storageReady || active || playableNotes().length === 0;
+  $('startGuitarSession').disabled = $('startSession').disabled;
   $('range').disabled = active;
   $('deck').disabled = active;
   for (const id of ['allStrings', 'allNotes', 'naturalNotes', 'clearNotes']) $(id).disabled = active;
@@ -142,7 +146,7 @@ function updateControls() {
   $('hint').disabled = !active || state.locked || !state.word;
   $('exportData').disabled = active;
   $('importData').disabled = active;
-  $('sessionState').textContent = active ? 'Session in progress' : 'Ready when you are';
+  $('sessionState').textContent = active ? isGuitarPractice() ? 'Guitar practice in progress' : 'Timed session in progress' : 'Ready when you are';
   $('sessionStatus').textContent = active ? 'Recording' : 'Not started';
   $('studyControls').hidden = active;
   $('boardInstruction').textContent = active ? 'Tap a fret to answer' : state.studyFilter === 'hidden' ? 'Tap a fret to reveal its note' : 'Tap a fret to hear its note';
@@ -162,6 +166,7 @@ function showIdle(message = state.studyFilter === 'hidden' ? 'Tap any fret to re
 }
 function updateTimer() {
   if (!state.session || state.session.status !== 'active') return;
+  if (isGuitarPractice()) { $('sessionTimer').textContent = 'No timer'; return; }
   const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(state.session.startedAt)) / 1000));
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor(seconds % 3600 / 60);
@@ -174,16 +179,16 @@ function recordPrompt() {
   state.session.currentWord = state.word;
   state.session.currentIndex = state.index;
   state.session.prompts.push({ id: `${state.session.id}-${state.session.prompts.length + 1}`, wordName: state.word.name, note: step.note, stringOpen: step.stringOpen, stringLabel: step.stringLabel, shownAt: new Date().toISOString(), answers: [] });
-  state.promptStartedMono = performance.now();
+  state.promptStartedMono = isGuitarPractice() ? 0 : performance.now();
   queueSave();
 }
-function startSession() {
+function startSession(mode = 'timed') {
   if (!state.storageReady || state.session || playableNotes().length === 0) return;
   if (state.nextTimer) clearTimeout(state.nextTimer);
   resetLiveStats();
-  state.session = { id: window.crypto && typeof window.crypto.randomUUID === 'function' ? window.crypto.randomUUID() : `session-${Date.now()}-${Math.random().toString(36).slice(2)}`, status: 'active', startedAt: new Date().toISOString(), endedAt: null, config: configSnapshot(), prompts: [], completedWords: 0, currentWord: null, currentIndex: 0, schedule: emptySchedule() };
+  state.session = { id: window.crypto && typeof window.crypto.randomUUID === 'function' ? window.crypto.randomUUID() : `session-${Date.now()}-${Math.random().toString(36).slice(2)}`, status: 'active', startedAt: new Date().toISOString(), endedAt: null, config: configSnapshot(mode), prompts: [], completedWords: 0, currentWord: null, currentIndex: 0, schedule: emptySchedule() };
   renderStudyLabels();
-  $('sessionTimer').textContent = '00:00';
+  $('sessionTimer').textContent = mode === 'guitar' ? 'No timer' : '00:00';
   chooseWord();
   updateTimer();
 }
@@ -214,9 +219,9 @@ function restoreSession(session) {
     renderSequence();
     $('wordName').textContent = state.word.name;
     $('wordNumber').textContent = `WORD ${String(state.words + 1).padStart(2, '0')}`;
-    $('feedback').textContent = `Session restored. Find ${describeStep(state.word.steps[state.index])}.`;
+    $('feedback').textContent = `Session restored. ${promptInstruction(state.word.steps[state.index])}`;
   } else chooseWord();
-  state.promptStartedMono = performance.now();
+  state.promptStartedMono = isGuitarPractice() ? 0 : performance.now();
   updateStats();
   updateControls();
   updateTimer();
@@ -232,7 +237,7 @@ async function endSession() {
   queueSave();
   await state.saveQueue;
   state.session = null;
-  $('sessionTimer').textContent = `${Math.floor(finished.summary.durationMs / 60000).toString().padStart(2, '0')}:${Math.floor(finished.summary.durationMs % 60000 / 1000).toString().padStart(2, '0')}`;
+  $('sessionTimer').textContent = isGuitarPractice(finished) ? 'No timer' : `${Math.floor(finished.summary.durationMs / 60000).toString().padStart(2, '0')}:${Math.floor(finished.summary.durationMs % 60000 / 1000).toString().padStart(2, '0')}`;
   showIdle(`Session saved. Accuracy: ${finished.summary.accuracy === null ? '—' : `${finished.summary.accuracy}%`}. Your history is below.`);
   renderDashboard();
 }
@@ -280,7 +285,7 @@ function chooseWord() {
   state.locked = false;
   $('wordName').textContent = word.name;
   $('wordNumber').textContent = `WORD ${String(state.words + 1).padStart(2, '0')}`;
-  $('feedback').textContent = `Find ${describeStep(word.steps[0])}. Tap the matching fret.`;
+  $('feedback').textContent = promptInstruction(word.steps[0]);
   $('feedback').className = 'feedback';
   renderSequence();
   clearBoardMarkers();
@@ -501,7 +506,7 @@ function answer(button) {
   const target = state.word.steps[state.index];
   const correct = button.dataset.inPractice === 'true' && played === target.note && (target.stringOpen === null || Number(button.dataset.stringOpen) === target.stringOpen);
   const prompt = state.session.prompts[state.session.prompts.length - 1];
-  prompt.answers.push({ at: new Date().toISOString(), note: played, stringOpen: Number(button.dataset.stringOpen), fret: Number(button.dataset.fret), midi: Number(button.dataset.midi), correct, responseMs: Math.max(0, Math.round(performance.now() - state.promptStartedMono)) });
+  prompt.answers.push({ at: new Date().toISOString(), note: played, stringOpen: Number(button.dataset.stringOpen), fret: Number(button.dataset.fret), midi: Number(button.dataset.midi), correct, responseMs: isGuitarPractice() ? null : Math.max(0, Math.round(performance.now() - state.promptStartedMono)) });
   state.attempts++;
   play(Number(button.dataset.midi));
   if (!correct) {
@@ -539,11 +544,11 @@ function answer(button) {
     recordPrompt();
   }
 }
-function configKey(config) { return JSON.stringify({ maxFret: config.maxFret, strings: [...config.selectedStrings].sort((a, b) => a - b), notes: [...config.selectedNotes].sort(), deck: config.deck }); }
+function configKey(config) { return JSON.stringify({ maxFret: config.maxFret, strings: [...config.selectedStrings].sort((a, b) => a - b), notes: [...config.selectedNotes].sort(), deck: config.deck, mode: config.mode === 'guitar' ? 'guitar' : 'timed' }); }
 function configLabel(config) {
   const strings = STRINGS.filter(string => config.selectedStrings.includes(string.open)).map(string => string.full).join(', ');
   const notes = config.selectedNotes.length === 12 ? 'all notes' : config.selectedNotes.join(', ');
-  return `${strings} · frets 0–${config.maxFret} · ${notes} · ${config.deck === 'random' ? 'note mix' : 'shapes'}`;
+  return `${config.mode === 'guitar' ? 'Guitar practice' : 'Timed'} · ${strings} · frets 0–${config.maxFret} · ${notes} · ${config.deck === 'random' ? 'note mix' : 'shapes'}`;
 }
 function formatDate(value) { return new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
 function formatTime(ms) { return ms === null || !Number.isFinite(ms) ? '—' : `${(ms / 1000).toFixed(1)}s`; }
@@ -667,14 +672,14 @@ function renderHistory(sessions) {
     heading.append(left, createElement('b', '', metrics.accuracy === null ? '—' : `${metrics.accuracy}%`));
     item.append(heading);
     const detail = createElement('div', 'history-details');
-    detail.append(createElement('p', '', `${metrics.completedWords} words · ${metrics.attempts} taps · ${metrics.firstTry ?? '—'}% first try · ${formatTime(metrics.medianMs)} median · ${Math.round(metrics.durationMs / 1000)}s session`));
+    detail.append(createElement('p', '', isGuitarPractice(session) ? `${metrics.completedWords} words · ${metrics.attempts} taps · ${metrics.firstTry ?? '—'}% first try · untimed guitar practice` : `${metrics.completedWords} words · ${metrics.attempts} taps · ${metrics.firstTry ?? '—'}% first try · ${formatTime(metrics.medianMs)} median · ${Math.round(metrics.durationMs / 1000)}s session`));
     session.prompts.forEach(prompt => {
       const target = prompt.stringOpen === null ? `${prompt.note} on any selected string` : `${prompt.note} on ${prompt.stringLabel}`;
       const row = createElement('div', 'trial-row');
       row.append(createElement('b', '', target));
       const attempts = prompt.answers?.length ? prompt.answers.map(answer => {
         const string = STRINGS.find(item => item.open === answer.stringOpen)?.full || 'unknown string';
-        return `${answer.note} · ${string} fret ${answer.fret} ${answer.correct ? '✓' : '×'} at ${formatTime(answer.responseMs)}`;
+        return `${answer.note} · ${string} fret ${answer.fret} ${answer.correct ? '✓' : '×'}${isGuitarPractice(session) ? '' : ` at ${formatTime(answer.responseMs)}`}`;
       }).join('  →  ') : 'Not attempted';
       row.append(createElement('small', '', `${prompt.wordName}: ${attempts}`));
       detail.append(row);
@@ -701,13 +706,13 @@ function renderDashboard() {
     [String(selected.length), 'finished sessions'],
     [answers.length ? `${Math.round(answers.filter(answer => answer.correct).length / answers.length * 100)}%` : '—', 'overall accuracy'],
     [prompts.length ? `${Math.round(prompts.filter(prompt => prompt.answers[0].correct).length / prompts.length * 100)}%` : '—', 'first-try accuracy'],
-    [formatTime(median), 'median time to correct note']
+    [formatTime(median), 'median time · timed sessions']
   ];
   $('dashboardSummary').replaceChildren(...overall.map(([value, label]) => { const tile = createElement('div', 'summary-tile'); tile.append(createElement('strong', '', value), createElement('span', '', label)); return tile; }));
   renderBarChart('accuracyChart', selected, 'accuracy');
-  renderBarChart('speedChart', selected, 'speed');
+  renderBarChart('speedChart', selected.filter(session => !isGuitarPractice(session)), 'speed');
   renderHeatmap(selected);
-  renderNoteTiming(selected);
+  renderNoteTiming(selected.filter(session => !isGuitarPractice(session)));
   renderHistory(selected);
 }
 function exportHistory() {
@@ -732,9 +737,9 @@ function normalizeImportedSession(value) {
     if (!prompt || !NOTES.includes(prompt.note) || !Array.isArray(prompt.answers) || prompt.answers.length > 1000) return null;
     const string = STRINGS.find(item => item.open === prompt.stringOpen);
     if (prompt.stringOpen !== null && !string) return null;
-    prompts.push({ id: String(prompt.id || ''), wordName: String(prompt.wordName || 'Note word'), note: prompt.note, stringOpen: prompt.stringOpen, stringLabel: string?.full || null, shownAt: String(prompt.shownAt || value.startedAt), answers: prompt.answers.filter(answer => answer && NOTES.includes(answer.note) && STRINGS.some(item => item.open === answer.stringOpen) && Number.isInteger(answer.fret) && answer.fret >= 0 && answer.fret <= 12 && Number.isFinite(answer.responseMs) && answer.responseMs >= 0 && typeof answer.correct === 'boolean').map(answer => ({ at: String(answer.at || ''), note: answer.note, stringOpen: answer.stringOpen, fret: answer.fret, midi: Number(answer.midi) || 0, correct: answer.correct, responseMs: answer.responseMs })) });
+    prompts.push({ id: String(prompt.id || ''), wordName: String(prompt.wordName || 'Note word'), note: prompt.note, stringOpen: prompt.stringOpen, stringLabel: string?.full || null, shownAt: String(prompt.shownAt || value.startedAt), answers: prompt.answers.filter(answer => answer && NOTES.includes(answer.note) && STRINGS.some(item => item.open === answer.stringOpen) && Number.isInteger(answer.fret) && answer.fret >= 0 && answer.fret <= 12 && (config.mode === 'guitar' ? answer.responseMs === null : Number.isFinite(answer.responseMs) && answer.responseMs >= 0) && typeof answer.correct === 'boolean').map(answer => ({ at: String(answer.at || ''), note: answer.note, stringOpen: answer.stringOpen, fret: answer.fret, midi: Number(answer.midi) || 0, correct: answer.correct, responseMs: answer.responseMs })) });
   }
-  const session = { id: value.id, status: 'finished', startedAt: value.startedAt, endedAt: value.endedAt, config: { range: ['starter', 'middle', 'full', 'custom'].includes(config.range) ? config.range : 'custom', maxFret: config.maxFret, selectedStrings, selectedNotes, deck: config.deck === 'random' ? 'random' : 'familiar' }, prompts, completedWords: Math.max(0, Math.floor(Number(value.completedWords) || 0)), currentWord: null, currentIndex: 0 };
+  const session = { id: value.id, status: 'finished', startedAt: value.startedAt, endedAt: value.endedAt, config: { range: ['starter', 'middle', 'full', 'custom'].includes(config.range) ? config.range : 'custom', maxFret: config.maxFret, selectedStrings, selectedNotes, deck: config.deck === 'random' ? 'random' : 'familiar', mode: config.mode === 'guitar' ? 'guitar' : 'timed' }, prompts, completedWords: Math.max(0, Math.floor(Number(value.completedWords) || 0)), currentWord: null, currentIndex: 0 };
   session.summary = sessionSummary(session);
   return session;
 }
@@ -784,7 +789,8 @@ $('allStrings').addEventListener('click', () => { state.selectedStrings = new Se
 $('allNotes').addEventListener('click', () => { state.selectedNotes = new Set(NOTES); selectionChanged(); });
 $('naturalNotes').addEventListener('click', () => { state.selectedNotes = new Set(NOTES.filter(note => !note.includes('♯'))); selectionChanged(); });
 $('clearNotes').addEventListener('click', () => { state.selectedNotes = new Set(); selectionChanged(); });
-$('startSession').addEventListener('click', startSession);
+$('startSession').addEventListener('click', () => startSession('timed'));
+$('startGuitarSession').addEventListener('click', () => startSession('guitar'));
 $('endSession').addEventListener('click', endSession);
 $('historyFilter').addEventListener('change', renderDashboard);
 $('exportData').addEventListener('click', exportHistory);

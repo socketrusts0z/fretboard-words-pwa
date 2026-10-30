@@ -67,7 +67,7 @@ async function initializeStorage() {
     }
   }
   state.storageReady = true;
-  const draft = state.history.filter(session => session.status === 'active' && !isGuitarPractice(session)).sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
+  const draft = state.history.filter(session => session.status === 'active').sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
   if (draft) restoreSession(draft);
   else showIdle();
   renderDashboard();
@@ -77,7 +77,7 @@ async function saveRecord(record) {
   else if (state.storage.kind === 'localstorage') localStorage.setItem(FALLBACK_KEY, JSON.stringify(state.history));
 }
 function queueSave() {
-  if (!state.session || isGuitarPractice()) return;
+  if (!state.session) return;
   const snapshot = JSON.parse(JSON.stringify(state.session));
   const existing = state.history.findIndex(item => item.id === snapshot.id);
   if (existing < 0) state.history.push(snapshot);
@@ -136,7 +136,7 @@ function updateControls() {
   $('startSession').hidden = active;
   $('startGuitarSession').hidden = active;
   $('endSession').hidden = !active;
-  $('endSession').textContent = isGuitarPractice() ? 'End practice' : 'End & save session';
+  $('endSession').textContent = 'End & save session';
   $('startSession').disabled = !state.storageReady || active || playableNotes().length === 0;
   $('startGuitarSession').disabled = $('startSession').disabled;
   $('range').disabled = active;
@@ -207,7 +207,7 @@ function restoreSession(session) {
   $('wordLength').value = String(state.wordLength);
   renderChoices();
   renderBoard();
-  resetLiveStats('timed');
+  resetLiveStats(isGuitarPractice() ? 'guitar' : 'timed');
   state.words = session.completedWords || 0;
   for (const answer of session.prompts.flatMap(prompt => prompt.answers || [])) {
     state.attempts++;
@@ -233,14 +233,6 @@ async function endSession() {
   if (!state.session || state.session.status !== 'active') return;
   if (state.nextTimer) clearTimeout(state.nextTimer);
   const finished = state.session;
-  if (isGuitarPractice(finished)) {
-    const accuracy = sessionSummary(finished).accuracy;
-    state.session = null;
-    $('sessionTimer').textContent = 'No timer';
-    showIdle(`Guitar practice ended. Accuracy: ${accuracy === null ? '—' : `${accuracy}%`}. This practice was not saved.`);
-    $('guitarScoreStatus').textContent = 'Last practice';
-    return;
-  }
   finished.status = 'finished';
   finished.endedAt = new Date().toISOString();
   finished.currentWord = null;
@@ -248,9 +240,9 @@ async function endSession() {
   queueSave();
   await state.saveQueue;
   state.session = null;
-  $('sessionTimer').textContent = `${Math.floor(finished.summary.durationMs / 60000).toString().padStart(2, '0')}:${Math.floor(finished.summary.durationMs % 60000 / 1000).toString().padStart(2, '0')}`;
-  showIdle(`Session saved. Accuracy: ${finished.summary.accuracy === null ? '—' : `${finished.summary.accuracy}%`}. Your history is below.`);
-  $('sessionStatus').textContent = 'Saved';
+  $('sessionTimer').textContent = isGuitarPractice(finished) ? 'No timer' : `${Math.floor(finished.summary.durationMs / 60000).toString().padStart(2, '0')}:${Math.floor(finished.summary.durationMs % 60000 / 1000).toString().padStart(2, '0')}`;
+  showIdle(`Session saved. ${isGuitarPractice(finished) ? 'Guitar practice' : 'Timed practice'} accuracy: ${finished.summary.accuracy === null ? '—' : `${finished.summary.accuracy}%`}. Your history is below.`);
+  $(isGuitarPractice(finished) ? 'guitarScoreStatus' : 'sessionStatus').textContent = 'Saved';
   renderDashboard();
 }
 function chooseWord() {
@@ -670,10 +662,10 @@ function renderNoteTiming(sessions) {
   table.append(body);
   root.append(table);
 }
-function renderHistory(sessions) {
-  const root = $('sessionHistory');
+function renderHistory(sessions, rootId) {
+  const root = $(rootId);
   root.replaceChildren();
-  if (!sessions.length) { root.append(createElement('p', 'empty-state', 'Your finished sessions will appear here.')); return; }
+  if (!sessions.length) { root.append(createElement('p', 'empty-state', 'Finished sessions will appear here.')); return; }
   [...sessions].reverse().forEach(session => {
     const metrics = sessionSummary(session);
     const item = createElement('details', 'history-item');
@@ -724,7 +716,8 @@ function renderDashboard() {
   renderBarChart('speedChart', selected.filter(session => !isGuitarPractice(session)), 'speed');
   renderHeatmap(selected);
   renderNoteTiming(selected.filter(session => !isGuitarPractice(session)));
-  renderHistory(selected);
+  renderHistory(selected.filter(session => !isGuitarPractice(session)), 'timedSessionHistory');
+  renderHistory(selected.filter(isGuitarPractice), 'guitarSessionHistory');
 }
 function exportHistory() {
   const sessions = state.history.filter(session => session.status === 'finished');

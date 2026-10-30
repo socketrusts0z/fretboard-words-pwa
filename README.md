@@ -1,6 +1,6 @@
 # Fretboard Words PWA
 
-A static, installable guitar fretboard trainer. Timed sessions and analysis history stay in this browser on this device. Untimed guitar practice is not saved. Export data regularly; use Import data to move a backup to another browser or device.
+A static, installable guitar fretboard trainer. Timed sessions, untimed guitar practice, and analysis history stay in this browser on this device. Export data regularly; use Import data to move a backup to another browser or device.
 
 ## GitHub Pages
 
@@ -20,4 +20,4 @@ Choose **Notes per word** to practice sequences of 2–6 notes. Random words dra
 
 ## Guitar practice
 
-Choose **Start guitar practice** for an untimed session. Play the prompted note on a real guitar, then tap the matching fret in the app. Correct taps advance the prompt; wrong taps are counted toward live accuracy. A separate guitar score card shows notes found, accuracy, and best streak. The last score stays visible until another guitar practice or a reload. The app does not use a microphone. Guitar practice ends without saving to history.
+Choose **Start guitar practice** for an untimed session. Play the prompted note on a real guitar, then tap the matching fret in the app. Correct taps advance the prompt; wrong taps are counted toward live accuracy. A separate guitar score card shows notes found, accuracy, and best streak. Finish with **End & save session** to keep the prompts, taps, and score in the Untimed Guitar Sessions history box. Guitar practice records no response times and uses no microphone.

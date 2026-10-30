@@ -26,7 +26,7 @@ function savedStudyFilter() {
     return ['all', 'selected', 'natural', 'hidden'].includes(value) ? value : 'all';
   } catch (_) { return 'all'; }
 }
-const state = { range: 'starter', maxFret: 5, selectedStrings: new Set([50, 45, 40]), selectedNotes: new Set(NOTES), deck: 'familiar', studyFilter: savedStudyFilter(), word: null, index: 0, words: 0, attempts: 0, hits: 0, streak: 0, best: 0, sound: true, locked: true, lastWord: '', audio: null, nextTimer: null, session: null, history: [], storage: null, storageReady: false, saveQueue: Promise.resolve(), promptStartedMono: 0 };
+const state = { range: 'starter', maxFret: 5, selectedStrings: new Set([50, 45, 40]), selectedNotes: new Set(NOTES), deck: 'familiar', wordLength: 4, studyFilter: savedStudyFilter(), word: null, index: 0, words: 0, attempts: 0, hits: 0, streak: 0, best: 0, sound: true, locked: true, lastWord: '', audio: null, nextTimer: null, session: null, history: [], storage: null, storageReady: false, saveQueue: Promise.resolve(), promptStartedMono: 0 };
 const DB_NAME = 'fretboard-words-history';
 const FALLBACK_KEY = 'fretboard-words-history-v1';
 
@@ -115,7 +115,7 @@ function playableNotes() {
   });
   return NOTES.filter(note => state.selectedNotes.has(note) && reachable.has(note));
 }
-function configSnapshot(mode) { return { range: state.range, maxFret: state.maxFret, selectedStrings: [...state.selectedStrings], selectedNotes: [...state.selectedNotes], deck: state.deck, mode }; }
+function configSnapshot(mode) { return { range: state.range, maxFret: state.maxFret, selectedStrings: [...state.selectedStrings], selectedNotes: [...state.selectedNotes], deck: state.deck, wordLength: state.wordLength, mode }; }
 function isGuitarPractice(session = state.session) { return session?.config?.mode === 'guitar'; }
 function promptInstruction(step) { return isGuitarPractice() ? `Play ${describeStep(step)} on your guitar, then tap the matching fret here.` : `Find ${describeStep(step)}. Tap the matching fret.`; }
 function sessionSummary(session) {
@@ -141,6 +141,7 @@ function updateControls() {
   $('startGuitarSession').disabled = $('startSession').disabled;
   $('range').disabled = active;
   $('deck').disabled = active;
+  $('wordLength').disabled = active;
   for (const id of ['allStrings', 'allNotes', 'naturalNotes', 'clearNotes']) $(id).disabled = active;
   document.querySelectorAll('.choice-chip').forEach(button => button.disabled = active);
   document.querySelectorAll('.fret-button').forEach(button => button.disabled = active && (state.locked || !state.word || button.dataset.inPractice !== 'true'));
@@ -201,8 +202,10 @@ function restoreSession(session) {
   state.selectedStrings = new Set(session.config.selectedStrings);
   state.selectedNotes = new Set(session.config.selectedNotes);
   state.deck = session.config.deck;
+  state.wordLength = [2, 3, 4, 5, 6].includes(session.config.wordLength) ? session.config.wordLength : 4;
   $('range').value = state.range;
   $('deck').value = state.deck;
+  $('wordLength').value = String(state.wordLength);
   renderChoices();
   renderBoard();
   resetLiveStats();
@@ -269,13 +272,12 @@ function chooseWord() {
     if (choices.length) {
       const name = drawFromBag(schedule.familiarBag, choices.map(item => item.name), state.lastWord);
       const chosen = choices.find(item => item.name === name);
-      word = { name: chosen.name, steps: chosen.notes.map(note => ({ note, stringOpen: null, stringLabel: null })) };
+      word = { name: chosen.name, steps: Array.from({ length: state.wordLength }, (_, index) => ({ note: chosen.notes[index % chosen.notes.length], stringOpen: null, stringLabel: null })) };
     }
   }
   if (!word) {
     const steps = [];
-    const count = pool.length === 1 && state.selectedStrings.size === 1 ? 3 : 4;
-    while (steps.length < count) {
+    while (steps.length < state.wordLength) {
       const note = drawFromBag(schedule.noteBag, pool, schedule.lastNote);
       schedule.lastNote = note;
       const strings = STRINGS.filter(string => state.selectedStrings.has(string.open) &&
@@ -552,11 +554,11 @@ function answer(button) {
     recordPrompt();
   }
 }
-function configKey(config) { return JSON.stringify({ maxFret: config.maxFret, strings: [...config.selectedStrings].sort((a, b) => a - b), notes: [...config.selectedNotes].sort(), deck: config.deck, mode: config.mode === 'guitar' ? 'guitar' : 'timed' }); }
+function configKey(config) { return JSON.stringify({ maxFret: config.maxFret, strings: [...config.selectedStrings].sort((a, b) => a - b), notes: [...config.selectedNotes].sort(), deck: config.deck, wordLength: config.wordLength || 'original', mode: config.mode === 'guitar' ? 'guitar' : 'timed' }); }
 function configLabel(config) {
   const strings = STRINGS.filter(string => config.selectedStrings.includes(string.open)).map(string => string.full).join(', ');
   const notes = config.selectedNotes.length === 12 ? 'all notes' : config.selectedNotes.join(', ');
-  return `${config.mode === 'guitar' ? 'Guitar practice' : 'Timed'} · ${strings} · frets 0–${config.maxFret} · ${notes} · ${config.deck === 'random' ? 'note mix' : 'shapes'}`;
+  return `${config.mode === 'guitar' ? 'Guitar practice' : 'Timed'} · ${strings} · frets 0–${config.maxFret} · ${notes} · ${config.deck === 'random' ? 'note mix' : 'shapes'} · ${config.wordLength ? `${config.wordLength} notes/word` : 'original word lengths'}`;
 }
 function formatDate(value) { return new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
 function formatTime(ms) { return ms === null || !Number.isFinite(ms) ? '—' : `${(ms / 1000).toFixed(1)}s`; }
@@ -747,7 +749,7 @@ function normalizeImportedSession(value) {
     if (prompt.stringOpen !== null && !string) return null;
     prompts.push({ id: String(prompt.id || ''), wordName: String(prompt.wordName || 'Note word'), note: prompt.note, stringOpen: prompt.stringOpen, stringLabel: string?.full || null, shownAt: String(prompt.shownAt || value.startedAt), answers: prompt.answers.filter(answer => answer && NOTES.includes(answer.note) && STRINGS.some(item => item.open === answer.stringOpen) && Number.isInteger(answer.fret) && answer.fret >= 0 && answer.fret <= 12 && (config.mode === 'guitar' ? answer.responseMs === null : Number.isFinite(answer.responseMs) && answer.responseMs >= 0) && typeof answer.correct === 'boolean').map(answer => ({ at: String(answer.at || ''), note: answer.note, stringOpen: answer.stringOpen, fret: answer.fret, midi: Number(answer.midi) || 0, correct: answer.correct, responseMs: answer.responseMs })) });
   }
-  const session = { id: value.id, status: 'finished', startedAt: value.startedAt, endedAt: value.endedAt, config: { range: ['starter', 'middle', 'full', 'custom'].includes(config.range) ? config.range : 'custom', maxFret: config.maxFret, selectedStrings, selectedNotes, deck: config.deck === 'random' ? 'random' : 'familiar', mode: config.mode === 'guitar' ? 'guitar' : 'timed' }, prompts, completedWords: Math.max(0, Math.floor(Number(value.completedWords) || 0)), currentWord: null, currentIndex: 0 };
+  const session = { id: value.id, status: 'finished', startedAt: value.startedAt, endedAt: value.endedAt, config: { range: ['starter', 'middle', 'full', 'custom'].includes(config.range) ? config.range : 'custom', maxFret: config.maxFret, selectedStrings, selectedNotes, deck: config.deck === 'random' ? 'random' : 'familiar', wordLength: [2, 3, 4, 5, 6].includes(config.wordLength) ? config.wordLength : null, mode: config.mode === 'guitar' ? 'guitar' : 'timed' }, prompts, completedWords: Math.max(0, Math.floor(Number(value.completedWords) || 0)), currentWord: null, currentIndex: 0 };
   session.summary = sessionSummary(session);
   return session;
 }
@@ -787,6 +789,7 @@ $('range').addEventListener('change', event => {
   selectionChanged(true);
 });
 $('deck').addEventListener('change', event => { state.deck = event.target.value; selectionChanged(); });
+$('wordLength').addEventListener('change', event => { state.wordLength = Number(event.target.value); selectionChanged(); });
 $('studyFilter').value = state.studyFilter;
 $('studyFilter').addEventListener('change', event => {
   state.studyFilter = event.target.value;

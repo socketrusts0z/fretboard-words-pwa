@@ -53,3 +53,4 @@
 .session-buttons .guitar-button{background:#304c3c;color:var(--mint);border-color:#71957b}
 .session-buttons .guitar-button:hover{background:#3b604a}
 @media(max-width:650px){.session-buttons{justify-content:stretch}.session-buttons .primary-button{width:100%}}
+@media(min-width:821px){.controls .length-group{flex:0 0 145px}}

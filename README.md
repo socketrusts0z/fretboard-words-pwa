@@ -16,6 +16,8 @@ Open the GitHub Pages URL in Safari. Tap Share → Add to Home Screen, enable **
 
 The random deck uses a shuffled bag of all playable selected notes. Every note occurs once before any note repeats; available strings rotate through their own shuffled bag for each note. Named familiar shapes also rotate through every eligible shape before repeating. The note order within a named shape stays fixed to preserve that shape.
 
+Choose **Notes per word** to practice sequences of 2–6 notes. Random words draw that many notes from the balanced bags. Familiar shapes keep their note order and cycle back to the start when the chosen length is longer than the shape.
+
 ## Guitar practice
 
 Choose **Start guitar practice** for an untimed session. Play the prompted note on a real guitar, then tap the matching fret in the app. Correct taps advance the prompt; wrong taps are counted toward live accuracy. The app does not use a microphone. Guitar practice ends without saving to history.

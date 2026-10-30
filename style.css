@@ -54,3 +54,8 @@
 .session-buttons .guitar-button:hover{background:#3b604a}
 @media(max-width:650px){.session-buttons{justify-content:stretch}.session-buttons .primary-button{width:100%}}
 @media(min-width:821px){.controls .length-group{flex:0 0 145px}}
+.bottom-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.bottom-grid .how-card{grid-column:1/-1}
+.guitar-score-card{border-color:#5b735c;background:#203529}
+.score-note{color:#a7baab;font-size:11px;line-height:1.4;margin:16px 0 0}
+@media(max-width:650px){.bottom-grid{grid-template-columns:minmax(0,1fr)}.bottom-grid .how-card{grid-column:auto}}

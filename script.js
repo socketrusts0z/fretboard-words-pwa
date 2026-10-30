@@ -127,9 +127,9 @@ function sessionSummary(session) {
   const medianMs = responseTimes.length ? responseTimes.length % 2 ? responseTimes[middle] : (responseTimes[middle - 1] + responseTimes[middle]) / 2 : null;
   return { attempts: answers.length, correct: correct.length, accuracy: answers.length ? Math.round(correct.length / answers.length * 100) : null, firstTry: prompts.length ? Math.round(prompts.filter(prompt => prompt.answers[0].correct).length / prompts.length * 100) : null, medianMs, completedWords: session.completedWords || 0, durationMs: Math.max(0, Date.parse(session.endedAt || new Date().toISOString()) - Date.parse(session.startedAt)) };
 }
-function resetLiveStats() {
+function resetLiveStats(mode = 'timed') {
   Object.assign(state, { words: 0, attempts: 0, hits: 0, streak: 0, best: 0, lastWord: '', index: 0 });
-  updateStats();
+  updateStats(mode);
 }
 function updateControls() {
   const active = !!state.session && state.session.status === 'active';
@@ -149,7 +149,7 @@ function updateControls() {
   $('exportData').disabled = active;
   $('importData').disabled = active;
   $('sessionState').textContent = active ? isGuitarPractice() ? 'Guitar practice in progress' : 'Timed session in progress' : 'Ready when you are';
-  $('sessionStatus').textContent = active ? isGuitarPractice() ? 'Practicing' : 'Recording' : 'Not started';
+  if (active) $(isGuitarPractice() ? 'guitarScoreStatus' : 'sessionStatus').textContent = isGuitarPractice() ? 'Practicing' : 'Recording';
   $('studyControls').hidden = active;
   $('boardInstruction').textContent = active ? 'Tap a fret to answer' : state.studyFilter === 'hidden' ? 'Tap a fret to reveal its note' : 'Tap a fret to hear its note';
 }
@@ -164,7 +164,6 @@ function showIdle(message = state.studyFilter === 'hidden' ? 'Tap any fret to re
   clearBoardMarkers();
   renderStudyLabels();
   updateControls();
-  if (message.startsWith('Session saved')) $('sessionStatus').textContent = 'Saved';
 }
 function updateTimer() {
   if (!state.session || state.session.status !== 'active') return;
@@ -187,7 +186,7 @@ function recordPrompt() {
 function startSession(mode = 'timed') {
   if (!state.storageReady || state.session || playableNotes().length === 0) return;
   if (state.nextTimer) clearTimeout(state.nextTimer);
-  resetLiveStats();
+  resetLiveStats(mode);
   state.session = { id: window.crypto && typeof window.crypto.randomUUID === 'function' ? window.crypto.randomUUID() : `session-${Date.now()}-${Math.random().toString(36).slice(2)}`, status: 'active', startedAt: new Date().toISOString(), endedAt: null, config: configSnapshot(mode), prompts: [], completedWords: 0, currentWord: null, currentIndex: 0, schedule: emptySchedule() };
   renderStudyLabels();
   $('sessionTimer').textContent = mode === 'guitar' ? 'No timer' : '00:00';
@@ -208,7 +207,7 @@ function restoreSession(session) {
   $('wordLength').value = String(state.wordLength);
   renderChoices();
   renderBoard();
-  resetLiveStats();
+  resetLiveStats('timed');
   state.words = session.completedWords || 0;
   for (const answer of session.prompts.flatMap(prompt => prompt.answers || [])) {
     state.attempts++;
@@ -239,6 +238,7 @@ async function endSession() {
     state.session = null;
     $('sessionTimer').textContent = 'No timer';
     showIdle(`Guitar practice ended. Accuracy: ${accuracy === null ? '—' : `${accuracy}%`}. This practice was not saved.`);
+    $('guitarScoreStatus').textContent = 'Last practice';
     return;
   }
   finished.status = 'finished';
@@ -250,6 +250,7 @@ async function endSession() {
   state.session = null;
   $('sessionTimer').textContent = `${Math.floor(finished.summary.durationMs / 60000).toString().padStart(2, '0')}:${Math.floor(finished.summary.durationMs % 60000 / 1000).toString().padStart(2, '0')}`;
   showIdle(`Session saved. Accuracy: ${finished.summary.accuracy === null ? '—' : `${finished.summary.accuracy}%`}. Your history is below.`);
+  $('sessionStatus').textContent = 'Saved';
   renderDashboard();
 }
 function chooseWord() {
@@ -468,7 +469,7 @@ function renderChoices() {
   const count = playableNotes().length;
   $('selectionStatus').textContent = state.selectedNotes.size === 0 ? 'Select one or more notes to begin.' : count === 0 ? 'No selected notes are reachable here.' : `${state.selectedStrings.size} string${state.selectedStrings.size === 1 ? '' : 's'} · ${count} playable note${count === 1 ? '' : 's'}`;
 }
-function selectionChanged(boardChanged = false) { if (state.session) return; renderChoices(); if (boardChanged) updateBoardPracticeArea(); resetLiveStats(); showIdle(); }
+function selectionChanged(boardChanged = false) { if (state.session) return; renderChoices(); if (boardChanged) updateBoardPracticeArea(); showIdle(); }
 function clearBoardMarkers() {
   document.querySelectorAll('.fret-button').forEach(button => {
     if (button.classList.contains('revealed')) button.textContent = '';
@@ -495,10 +496,10 @@ function play(midi) {
     oscillator.stop(now + 0.5);
   } catch (_) { /* Sound is optional; practice still works. */ }
 }
-function updateStats() {
-  $('completed').textContent = state.words;
-  $('accuracy').textContent = state.attempts ? `${Math.round(state.hits / state.attempts * 100)}%` : '—';
-  $('streak').textContent = state.best;
+function updateStats(mode = isGuitarPractice() ? 'guitar' : 'timed') {
+  $(mode === 'guitar' ? 'guitarCompleted' : 'completed').textContent = mode === 'guitar' ? state.hits : state.words;
+  $(mode === 'guitar' ? 'guitarAccuracy' : 'accuracy').textContent = state.attempts ? `${Math.round(state.hits / state.attempts * 100)}%` : '—';
+  $(mode === 'guitar' ? 'guitarStreak' : 'streak').textContent = state.best;
 }
 function answer(button) {
   if (!state.session) {

@@ -20,4 +20,4 @@ Choose **Notes per word** to practice sequences of 2–6 notes. Random words dra
 
 ## Guitar practice
 
-Choose **Start guitar practice** for an untimed session. Play the prompted note on a real guitar, then tap the matching fret in the app. Correct taps advance the prompt; wrong taps are counted toward live accuracy. The app does not use a microphone. Guitar practice ends without saving to history.
+Choose **Start guitar practice** for an untimed session. Play the prompted note on a real guitar, then tap the matching fret in the app. Correct taps advance the prompt; wrong taps are counted toward live accuracy. A separate guitar score card shows notes found, accuracy, and best streak. The last score stays visible until another guitar practice or a reload. The app does not use a microphone. Guitar practice ends without saving to history.

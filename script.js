@@ -67,7 +67,7 @@ async function initializeStorage() {
     }
   }
   state.storageReady = true;
-  const draft = state.history.filter(session => session.status === 'active').sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
+  const draft = state.history.filter(session => session.status === 'active' && !isGuitarPractice(session)).sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
   if (draft) restoreSession(draft);
   else showIdle();
   renderDashboard();
@@ -77,7 +77,7 @@ async function saveRecord(record) {
   else if (state.storage.kind === 'localstorage') localStorage.setItem(FALLBACK_KEY, JSON.stringify(state.history));
 }
 function queueSave() {
-  if (!state.session) return;
+  if (!state.session || isGuitarPractice()) return;
   const snapshot = JSON.parse(JSON.stringify(state.session));
   const existing = state.history.findIndex(item => item.id === snapshot.id);
   if (existing < 0) state.history.push(snapshot);
@@ -136,6 +136,7 @@ function updateControls() {
   $('startSession').hidden = active;
   $('startGuitarSession').hidden = active;
   $('endSession').hidden = !active;
+  $('endSession').textContent = isGuitarPractice() ? 'End practice' : 'End & save session';
   $('startSession').disabled = !state.storageReady || active || playableNotes().length === 0;
   $('startGuitarSession').disabled = $('startSession').disabled;
   $('range').disabled = active;
@@ -147,7 +148,7 @@ function updateControls() {
   $('exportData').disabled = active;
   $('importData').disabled = active;
   $('sessionState').textContent = active ? isGuitarPractice() ? 'Guitar practice in progress' : 'Timed session in progress' : 'Ready when you are';
-  $('sessionStatus').textContent = active ? 'Recording' : 'Not started';
+  $('sessionStatus').textContent = active ? isGuitarPractice() ? 'Practicing' : 'Recording' : 'Not started';
   $('studyControls').hidden = active;
   $('boardInstruction').textContent = active ? 'Tap a fret to answer' : state.studyFilter === 'hidden' ? 'Tap a fret to reveal its note' : 'Tap a fret to hear its note';
 }
@@ -230,6 +231,13 @@ async function endSession() {
   if (!state.session || state.session.status !== 'active') return;
   if (state.nextTimer) clearTimeout(state.nextTimer);
   const finished = state.session;
+  if (isGuitarPractice(finished)) {
+    const accuracy = sessionSummary(finished).accuracy;
+    state.session = null;
+    $('sessionTimer').textContent = 'No timer';
+    showIdle(`Guitar practice ended. Accuracy: ${accuracy === null ? '—' : `${accuracy}%`}. This practice was not saved.`);
+    return;
+  }
   finished.status = 'finished';
   finished.endedAt = new Date().toISOString();
   finished.currentWord = null;
@@ -237,7 +245,7 @@ async function endSession() {
   queueSave();
   await state.saveQueue;
   state.session = null;
-  $('sessionTimer').textContent = isGuitarPractice(finished) ? 'No timer' : `${Math.floor(finished.summary.durationMs / 60000).toString().padStart(2, '0')}:${Math.floor(finished.summary.durationMs % 60000 / 1000).toString().padStart(2, '0')}`;
+  $('sessionTimer').textContent = `${Math.floor(finished.summary.durationMs / 60000).toString().padStart(2, '0')}:${Math.floor(finished.summary.durationMs % 60000 / 1000).toString().padStart(2, '0')}`;
   showIdle(`Session saved. Accuracy: ${finished.summary.accuracy === null ? '—' : `${finished.summary.accuracy}%`}. Your history is below.`);
   renderDashboard();
 }

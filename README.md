@@ -1,6 +1,6 @@
 # Fretboard Words PWA
 
-A static, installable guitar fretboard trainer. Sessions and analysis history stay in this browser on this device. Export data regularly; use Import data to move a backup to another browser or device.
+A static, installable guitar fretboard trainer. Timed sessions and analysis history stay in this browser on this device. Untimed guitar practice is not saved. Export data regularly; use Import data to move a backup to another browser or device.
 
 ## GitHub Pages
 
@@ -18,4 +18,4 @@ The random deck uses a shuffled bag of all playable selected notes. Every note o
 
 ## Guitar practice
 
-Choose **Start guitar practice** for an untimed session. Play the prompted note on a real guitar, then tap the matching fret in the app. Correct taps advance the prompt; wrong taps are counted toward accuracy. The app does not use a microphone. Guitar practice sessions are saved in history, including the prompted notes and taps, while timing charts use timed sessions only.
+Choose **Start guitar practice** for an untimed session. Play the prompted note on a real guitar, then tap the matching fret in the app. Correct taps advance the prompt; wrong taps are counted toward live accuracy. The app does not use a microphone. Guitar practice ends without saving to history.

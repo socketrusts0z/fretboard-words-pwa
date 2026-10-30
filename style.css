@@ -39,3 +39,12 @@
 .fretboard .fret-cell.outside-practice .fret-button{opacity:.24}
 .fretboard .fret-cell.outside-practice .fret-button.revealed{opacity:1}
 .fretboard [data-string-head].outside-practice,.fretboard [data-fret-head].outside-practice{color:#6f8577}
+
+.board-study-controls{display:flex;align-items:center;flex-wrap:wrap;gap:9px 12px;margin:0 0 16px}
+.board-study-controls label{color:#a7bcae;font-size:10px;font-weight:700;letter-spacing:.14em;white-space:nowrap}
+.board-study-controls select{min-width:0;max-width:100%;padding:9px 31px 9px 11px;border:1px solid #4b6359;border-radius:9px;background:#21362f;color:var(--text);font-size:12px}
+.board-study-controls span{flex:1 1 180px;color:#9eb2ab;font-size:11px;line-height:1.4}
+.fret-button.study-label{font-weight:700}
+.fretboard .fret-cell.outside-practice .fret-button.study-label{opacity:.9}
+.fretboard .fret-cell.outside-practice .fret-button.study-label.revealed{opacity:1}
+@media(max-width:550px){.board-study-controls select{flex:1 1 100%}.board-study-controls span{flex:1 1 100%}}

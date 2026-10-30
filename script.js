@@ -19,7 +19,14 @@ const FAMILIAR = [
 ];
 const $ = id => document.getElementById(id);
 const boardBreakpoint = window.matchMedia('(max-width: 820px)');
-const state = { range: 'starter', maxFret: 5, selectedStrings: new Set([50, 45, 40]), selectedNotes: new Set(NOTES), deck: 'familiar', word: null, index: 0, words: 0, attempts: 0, hits: 0, streak: 0, best: 0, sound: true, locked: true, lastWord: '', audio: null, nextTimer: null, session: null, history: [], storage: null, storageReady: false, saveQueue: Promise.resolve(), promptStartedMono: 0 };
+const STUDY_FILTER_KEY = 'fretboard-words-study-filter-v1';
+function savedStudyFilter() {
+  try {
+    const value = localStorage.getItem(STUDY_FILTER_KEY);
+    return ['all', 'selected', 'natural', 'hidden'].includes(value) ? value : 'all';
+  } catch (_) { return 'all'; }
+}
+const state = { range: 'starter', maxFret: 5, selectedStrings: new Set([50, 45, 40]), selectedNotes: new Set(NOTES), deck: 'familiar', studyFilter: savedStudyFilter(), word: null, index: 0, words: 0, attempts: 0, hits: 0, streak: 0, best: 0, sound: true, locked: true, lastWord: '', audio: null, nextTimer: null, session: null, history: [], storage: null, storageReady: false, saveQueue: Promise.resolve(), promptStartedMono: 0 };
 const DB_NAME = 'fretboard-words-history';
 const FALLBACK_KEY = 'fretboard-words-history-v1';
 
@@ -137,9 +144,10 @@ function updateControls() {
   $('importData').disabled = active;
   $('sessionState').textContent = active ? 'Session in progress' : 'Ready when you are';
   $('sessionStatus').textContent = active ? 'Recording' : 'Not started';
-  $('boardInstruction').textContent = active ? 'Tap a fret to answer' : 'Tap a fret to reveal its note';
+  $('studyControls').hidden = active;
+  $('boardInstruction').textContent = active ? 'Tap a fret to answer' : state.studyFilter === 'hidden' ? 'Tap a fret to reveal its note' : 'Tap a fret to hear its note';
 }
-function showIdle(message = 'Tap any fret to reveal its note, or start a session.') {
+function showIdle(message = state.studyFilter === 'hidden' ? 'Tap any fret to reveal its note, or start a session.' : 'Study the labeled fretboard, or start a session.') {
   state.word = null;
   state.locked = true;
   $('wordName').textContent = message.startsWith('Session saved') ? 'Session saved' : 'Ready to practice';
@@ -148,6 +156,7 @@ function showIdle(message = 'Tap any fret to reveal its note, or start a session
   $('feedback').textContent = message;
   $('feedback').className = 'feedback';
   clearBoardMarkers();
+  renderStudyLabels();
   updateControls();
   if (message.startsWith('Session saved')) $('sessionStatus').textContent = 'Saved';
 }
@@ -173,6 +182,7 @@ function startSession() {
   if (state.nextTimer) clearTimeout(state.nextTimer);
   resetLiveStats();
   state.session = { id: window.crypto && typeof window.crypto.randomUUID === 'function' ? window.crypto.randomUUID() : `session-${Date.now()}-${Math.random().toString(36).slice(2)}`, status: 'active', startedAt: new Date().toISOString(), endedAt: null, config: configSnapshot(), prompts: [], completedWords: 0, currentWord: null, currentIndex: 0, schedule: emptySchedule() };
+  renderStudyLabels();
   $('sessionTimer').textContent = '00:00';
   chooseWord();
   updateTimer();
@@ -322,6 +332,17 @@ function makeFretCell(string, fret) {
   cell.append(button);
   return cell;
 }
+function renderStudyLabels() {
+  const active = !!state.session && state.session.status === 'active';
+  document.querySelectorAll('.fret-button').forEach(button => {
+    const note = button.dataset.note;
+    const show = !active && (state.studyFilter === 'all' || state.studyFilter === 'selected' && state.selectedNotes.has(note) || state.studyFilter === 'natural' && !note.includes('♯'));
+    const label = show ? note : '';
+    if (button.textContent !== label) button.textContent = label;
+    button.classList.toggle('study-label', show);
+    button.classList.remove('revealed');
+  });
+}
 function updateBoardPracticeArea() {
   document.querySelectorAll('.fret-button').forEach(button => {
     const inPractice = state.selectedStrings.has(Number(button.dataset.stringOpen)) && Number(button.dataset.fret) <= state.maxFret;
@@ -390,6 +411,7 @@ function renderBoard() {
   }
   $('fretboard').replaceChildren(table);
   updateBoardPracticeArea();
+  if (!state.session) renderStudyLabels();
 }
 function renderChoices() {
   const stringRoot = $('stringChoices');
@@ -466,12 +488,8 @@ function updateStats() {
 function answer(button) {
   if (!state.session) {
     const note = button.dataset.note;
-    document.querySelectorAll('.fret-button').forEach(other => {
-      if (other.dataset.stringOpen === button.dataset.stringOpen && other.dataset.fret === button.dataset.fret) {
-        other.textContent = note;
-        other.classList.add('revealed');
-      }
-    });
+    button.textContent = note;
+    button.classList.add('revealed');
     play(Number(button.dataset.midi));
     $('feedback').textContent = `${note} at ${button.dataset.location}.`;
     $('feedback').className = 'feedback';
@@ -756,6 +774,12 @@ $('range').addEventListener('change', event => {
   selectionChanged(true);
 });
 $('deck').addEventListener('change', event => { state.deck = event.target.value; selectionChanged(); });
+$('studyFilter').value = state.studyFilter;
+$('studyFilter').addEventListener('change', event => {
+  state.studyFilter = event.target.value;
+  try { localStorage.setItem(STUDY_FILTER_KEY, state.studyFilter); } catch (_) { /* Filtering still works without storage. */ }
+  showIdle();
+});
 $('allStrings').addEventListener('click', () => { state.selectedStrings = new Set(STRINGS.map(string => string.open)); state.range = 'custom'; $('range').value = 'custom'; selectionChanged(true); });
 $('allNotes').addEventListener('click', () => { state.selectedNotes = new Set(NOTES); selectionChanged(); });
 $('naturalNotes').addEventListener('click', () => { state.selectedNotes = new Set(NOTES.filter(note => !note.includes('♯'))); selectionChanged(); });

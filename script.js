@@ -468,22 +468,25 @@ function clearBoardMarkers() {
     button.classList.remove('hint', 'wrong', 'correct-hit', 'revealed');
   });
 }
-function play(midi) {
+async function play(midi) {
   if (!state.sound) return;
   try {
     const Context = window.AudioContext || window.webkitAudioContext;
     if (!Context) return;
+    if (state.audio?.state === 'closed') state.audio = null;
     state.audio ||= new Context();
-    if (state.audio.state === 'suspended') state.audio.resume();
-    const now = state.audio.currentTime;
-    const oscillator = state.audio.createOscillator();
-    const gain = state.audio.createGain();
+    const audio = state.audio;
+    if (audio.state && audio.state !== 'running') await audio.resume();
+    if (!state.sound || (audio.state && audio.state !== 'running')) return;
+    const now = audio.currentTime;
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
     oscillator.type = 'triangle';
     oscillator.frequency.value = 440 * 2 ** ((midi - 69) / 12);
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
-    oscillator.connect(gain).connect(state.audio.destination);
+    oscillator.connect(gain).connect(audio.destination);
     oscillator.start(now);
     oscillator.stop(now + 0.5);
   } catch (_) { /* Sound is optional; practice still works. */ }

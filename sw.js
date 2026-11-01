@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fretboard-words-v14';
+const CACHE_NAME = 'fretboard-words-v15';
 const APP_URL = new URL('./', self.registration.scope).toString();
 const OFFLINE_FILES = [
   APP_URL,

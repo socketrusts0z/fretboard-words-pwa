@@ -486,10 +486,11 @@ async function play(midi) {
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
-    oscillator.connect(gain).connect(audio.destination);
+    oscillator.connect(gain);
+    gain.connect(audio.destination);
     oscillator.start(now);
     oscillator.stop(now + 0.5);
-  } catch (_) { /* Sound is optional; practice still works. */ }
+  } catch (error) { console.warn('Could not play fret note:', error); }
 }
 function updateStats(mode = isGuitarPractice() ? 'guitar' : 'timed') {
   $(mode === 'guitar' ? 'guitarCompleted' : 'completed').textContent = mode === 'guitar' ? state.hits : state.words;

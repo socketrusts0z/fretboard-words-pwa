@@ -60,3 +60,4 @@
 .score-note{color:#a7baab;font-size:11px;line-height:1.4;margin:16px 0 0}
 @media(max-width:650px){.bottom-grid{grid-template-columns:minmax(0,1fr)}.bottom-grid .how-card{grid-column:auto}}
 .history-column{display:grid;align-content:start;gap:15px;min-width:0}
+@media(min-width:651px){.guitar-speed-card{grid-column:1/-1}}

@@ -188,7 +188,7 @@ function recordPrompt() {
   state.session.currentWord = state.word;
   state.session.currentIndex = state.index;
   state.session.prompts.push({ id: `${state.session.id}-${state.session.prompts.length + 1}`, wordName: state.word.name, note: step.note, stringOpen: step.stringOpen, stringLabel: step.stringLabel, shownAt: new Date().toISOString(), answers: [] });
-  state.promptStartedMono = isGuitarPractice() ? 0 : performance.now();
+  state.promptStartedMono = performance.now();
   queueSave();
 }
 function startSession(mode = 'timed') {
@@ -232,7 +232,7 @@ function restoreSession(session) {
     $('wordNumber').textContent = `WORD ${String(state.words + 1).padStart(2, '0')}`;
     $('feedback').textContent = `Session restored. ${promptInstruction(state.word.steps[state.index])}`;
   } else chooseWord();
-  state.promptStartedMono = isGuitarPractice() ? 0 : performance.now();
+  state.promptStartedMono = performance.now();
   updateStats();
   updateControls();
   updateTimer();
@@ -516,7 +516,7 @@ function answer(button) {
   const target = state.word.steps[state.index];
   const correct = button.dataset.inPractice === 'true' && played === target.note && (target.stringOpen === null || Number(button.dataset.stringOpen) === target.stringOpen);
   const prompt = state.session.prompts[state.session.prompts.length - 1];
-  prompt.answers.push({ at: new Date().toISOString(), note: played, stringOpen: Number(button.dataset.stringOpen), fret: Number(button.dataset.fret), midi: Number(button.dataset.midi), correct, responseMs: isGuitarPractice() ? null : Math.max(0, Math.round(performance.now() - state.promptStartedMono)) });
+  prompt.answers.push({ at: new Date().toISOString(), note: played, stringOpen: Number(button.dataset.stringOpen), fret: Number(button.dataset.fret), midi: Number(button.dataset.midi), correct, responseMs: Math.max(0, Math.round(performance.now() - state.promptStartedMono)) });
   state.attempts++;
   play(Number(button.dataset.midi));
   if (!correct) {
@@ -567,7 +567,7 @@ function renderBarChart(id, sessions, kind) {
   const root = $(id);
   root.replaceChildren();
   const points = sessions.slice(-10).map(session => ({ session, value: kind === 'accuracy' ? sessionSummary(session).accuracy : sessionSummary(session).medianMs }));
-  if (!points.some(point => point.value !== null)) { root.append(createElement('p', 'empty-state', 'Finish a session to see your trend.')); return; }
+  if (!points.some(point => point.value !== null)) { root.append(createElement('p', 'empty-state', kind === 'speed' ? 'No measured sessions yet. Finish a new session to see your timing trend.' : 'Finish a session to see your trend.')); return; }
   const max = kind === 'accuracy' ? 100 : Math.max(1000, ...points.map(point => point.value || 0)) * 1.1;
   const chart = createElement('div', `bar-chart${kind === 'speed' ? ' speed' : ''}`);
   points.forEach(point => {
@@ -621,8 +621,8 @@ function renderHeatmap(sessions) {
   table.append(body);
   root.append(table);
 }
-function renderNoteTiming(sessions) {
-  const root = $('noteTiming');
+function renderNoteTiming(sessions, rootId) {
+  const root = $(rootId);
   root.replaceChildren();
   const timings = new Map();
   for (const session of sessions) for (const prompt of session.prompts) {
@@ -682,14 +682,14 @@ function renderHistory(sessions, rootId) {
     heading.append(left, createElement('b', '', metrics.accuracy === null ? '—' : `${metrics.accuracy}%`));
     item.append(heading);
     const detail = createElement('div', 'history-details');
-    detail.append(createElement('p', '', isGuitarPractice(session) ? `${metrics.completedWords} words · ${metrics.attempts} taps · ${metrics.firstTry ?? '—'}% first try · untimed guitar practice` : `${metrics.completedWords} words · ${metrics.attempts} taps · ${metrics.firstTry ?? '—'}% first try · ${formatTime(metrics.medianMs)} median · ${Math.round(metrics.durationMs / 1000)}s session`));
+    detail.append(createElement('p', '', `${metrics.completedWords} words · ${metrics.attempts} taps · ${metrics.firstTry ?? '—'}% first try · ${formatTime(metrics.medianMs)} median${isGuitarPractice(session) ? ' prompt-to-tap' : ''} · ${Math.round(metrics.durationMs / 1000)}s session`));
     session.prompts.forEach(prompt => {
       const target = prompt.stringOpen === null ? `${prompt.note} on any selected string` : `${prompt.note} on ${prompt.stringLabel}`;
       const row = createElement('div', 'trial-row');
       row.append(createElement('b', '', target));
       const attempts = prompt.answers?.length ? prompt.answers.map(answer => {
         const string = STRINGS.find(item => item.open === answer.stringOpen)?.full || 'unknown string';
-        return `${answer.note} · ${string} fret ${answer.fret} ${answer.correct ? '✓' : '×'}${isGuitarPractice(session) ? '' : ` at ${formatTime(answer.responseMs)}`}`;
+        return `${answer.note} · ${string} fret ${answer.fret} ${answer.correct ? '✓' : '×'}${Number.isFinite(answer.responseMs) ? ` at ${formatTime(answer.responseMs)}` : ''}`;
       }).join('  →  ') : 'Not attempted';
       row.append(createElement('small', '', `${prompt.wordName}: ${attempts}`));
       detail.append(row);
@@ -710,19 +710,22 @@ function renderDashboard() {
   const selected = filter.value === 'all' ? finished : finished.filter(session => configKey(session.config) === filter.value);
   const prompts = selected.flatMap(session => session.prompts).filter(prompt => prompt.answers?.length);
   const answers = prompts.flatMap(prompt => prompt.answers);
-  const times = prompts.map(prompt => prompt.answers.find(answer => answer.correct)?.responseMs).filter(Number.isFinite).sort((a, b) => a - b);
+  const guitarOnly = selected.length > 0 && selected.every(isGuitarPractice);
+  const times = selected.filter(session => guitarOnly ? isGuitarPractice(session) : !isGuitarPractice(session)).flatMap(session => session.prompts).map(prompt => prompt.answers?.find(answer => answer.correct)?.responseMs).filter(Number.isFinite).sort((a, b) => a - b);
   const median = times.length ? times.length % 2 ? times[Math.floor(times.length / 2)] : (times[times.length / 2 - 1] + times[times.length / 2]) / 2 : null;
   const overall = [
     [String(selected.length), 'finished sessions'],
     [answers.length ? `${Math.round(answers.filter(answer => answer.correct).length / answers.length * 100)}%` : '—', 'overall accuracy'],
     [prompts.length ? `${Math.round(prompts.filter(prompt => prompt.answers[0].correct).length / prompts.length * 100)}%` : '—', 'first-try accuracy'],
-    [formatTime(median), 'median time · timed sessions']
+    [formatTime(median), guitarOnly ? 'median prompt-to-tap · guitar' : 'median time · timed sessions']
   ];
   $('dashboardSummary').replaceChildren(...overall.map(([value, label]) => { const tile = createElement('div', 'summary-tile'); tile.append(createElement('strong', '', value), createElement('span', '', label)); return tile; }));
   renderBarChart('accuracyChart', selected, 'accuracy');
   renderBarChart('speedChart', selected.filter(session => !isGuitarPractice(session)), 'speed');
+  renderBarChart('guitarSpeedChart', selected.filter(isGuitarPractice), 'speed');
   renderHeatmap(selected);
-  renderNoteTiming(selected.filter(session => !isGuitarPractice(session)));
+  renderNoteTiming(selected.filter(session => !isGuitarPractice(session)), 'noteTiming');
+  renderNoteTiming(selected.filter(isGuitarPractice), 'guitarNoteTiming');
   renderHistory(selected.filter(session => !isGuitarPractice(session)), 'timedSessionHistory');
   renderHistory(selected.filter(isGuitarPractice), 'guitarSessionHistory');
 }
@@ -748,7 +751,7 @@ function normalizeImportedSession(value) {
     if (!prompt || !NOTES.includes(prompt.note) || !Array.isArray(prompt.answers) || prompt.answers.length > 1000) return null;
     const string = STRINGS.find(item => item.open === prompt.stringOpen);
     if (prompt.stringOpen !== null && !string) return null;
-    prompts.push({ id: String(prompt.id || ''), wordName: String(prompt.wordName || 'Note word'), note: prompt.note, stringOpen: prompt.stringOpen, stringLabel: string?.full || null, shownAt: String(prompt.shownAt || value.startedAt), answers: prompt.answers.filter(answer => answer && NOTES.includes(answer.note) && STRINGS.some(item => item.open === answer.stringOpen) && Number.isInteger(answer.fret) && answer.fret >= 0 && answer.fret <= 12 && (config.mode === 'guitar' ? answer.responseMs === null : Number.isFinite(answer.responseMs) && answer.responseMs >= 0) && typeof answer.correct === 'boolean').map(answer => ({ at: String(answer.at || ''), note: answer.note, stringOpen: answer.stringOpen, fret: answer.fret, midi: Number(answer.midi) || 0, correct: answer.correct, responseMs: answer.responseMs })) });
+    prompts.push({ id: String(prompt.id || ''), wordName: String(prompt.wordName || 'Note word'), note: prompt.note, stringOpen: prompt.stringOpen, stringLabel: string?.full || null, shownAt: String(prompt.shownAt || value.startedAt), answers: prompt.answers.filter(answer => answer && NOTES.includes(answer.note) && STRINGS.some(item => item.open === answer.stringOpen) && Number.isInteger(answer.fret) && answer.fret >= 0 && answer.fret <= 12 && ((Number.isFinite(answer.responseMs) && answer.responseMs >= 0) || (config.mode === 'guitar' && answer.responseMs === null)) && typeof answer.correct === 'boolean').map(answer => ({ at: String(answer.at || ''), note: answer.note, stringOpen: answer.stringOpen, fret: answer.fret, midi: Number(answer.midi) || 0, correct: answer.correct, responseMs: answer.responseMs })) });
   }
   const session = { id: value.id, status: 'finished', startedAt: value.startedAt, endedAt: value.endedAt, config: { range: ['starter', 'middle', 'full', 'custom'].includes(config.range) ? config.range : 'custom', maxFret: config.maxFret, selectedStrings, selectedNotes, deck: config.deck === 'random' ? 'random' : 'familiar', wordLength: [2, 3, 4, 5, 6].includes(config.wordLength) ? config.wordLength : null, mode: config.mode === 'guitar' ? 'guitar' : 'timed' }, prompts, completedWords: Math.max(0, Math.floor(Number(value.completedWords) || 0)), currentWord: null, currentIndex: 0 };
   session.summary = sessionSummary(session);

@@ -14,7 +14,7 @@ Open the GitHub Pages URL in Safari. Tap Share → Add to Home Screen, enable **
 
 ## Random practice
 
-The random deck uses a shuffled bag of all playable selected notes. Every note occurs once before any note repeats; available strings rotate through their own shuffled bag for each note. Named familiar shapes also rotate through every eligible shape before repeating. The note order within a named shape stays fixed to preserve that shape.
+The random deck uses a shuffled bag of all playable selected notes. Every note occurs once before any note repeats; available strings rotate through their own shuffled bag for each note. Named familiar shapes also rotate through every eligible shape before repeating. The note order within a named shape stays fixed, while each note gets a specific reachable string using the same balanced string rotation.
 
 Choose **Notes per word** to practice sequences of 2–6 notes. Random words draw that many notes from the balanced bags. Familiar shapes keep their note order and cycle back to the start when the chosen length is longer than the shape.
 

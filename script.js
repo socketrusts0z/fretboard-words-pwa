@@ -115,6 +115,14 @@ function playableNotes() {
   });
   return NOTES.filter(note => state.selectedNotes.has(note) && reachable.has(note));
 }
+function stepOnString(note, schedule) {
+  const strings = STRINGS.filter(string => state.selectedStrings.has(string.open) &&
+    Array.from({ length: state.maxFret + 1 }, (_, fret) => noteFor(string.open + fret)).includes(note));
+  const bag = schedule.stringBags[note] ||= [];
+  const stringOpen = drawFromBag(bag, strings.map(string => string.open));
+  const string = strings.find(item => item.open === stringOpen);
+  return { note, stringOpen, stringLabel: string.full };
+}
 function configSnapshot(mode) { return { range: state.range, maxFret: state.maxFret, selectedStrings: [...state.selectedStrings], selectedNotes: [...state.selectedNotes], deck: state.deck, wordLength: state.wordLength, mode }; }
 function isGuitarPractice(session = state.session) { return session?.config?.mode === 'guitar'; }
 function promptInstruction(step) { return isGuitarPractice() ? `Play ${describeStep(step)} on your guitar, then tap the matching fret here.` : `Find ${describeStep(step)}. Tap the matching fret.`; }
@@ -265,7 +273,7 @@ function chooseWord() {
     if (choices.length) {
       const name = drawFromBag(schedule.familiarBag, choices.map(item => item.name), state.lastWord);
       const chosen = choices.find(item => item.name === name);
-      word = { name: chosen.name, steps: Array.from({ length: state.wordLength }, (_, index) => ({ note: chosen.notes[index % chosen.notes.length], stringOpen: null, stringLabel: null })) };
+      word = { name: chosen.name, steps: Array.from({ length: state.wordLength }, (_, index) => stepOnString(chosen.notes[index % chosen.notes.length], schedule)) };
     }
   }
   if (!word) {
@@ -273,12 +281,7 @@ function chooseWord() {
     while (steps.length < state.wordLength) {
       const note = drawFromBag(schedule.noteBag, pool, schedule.lastNote);
       schedule.lastNote = note;
-      const strings = STRINGS.filter(string => state.selectedStrings.has(string.open) &&
-        Array.from({ length: state.maxFret + 1 }, (_, fret) => noteFor(string.open + fret)).includes(note));
-      const bag = schedule.stringBags[note] ||= [];
-      const stringOpen = drawFromBag(bag, strings.map(string => string.open));
-      const string = strings.find(item => item.open === stringOpen);
-      steps.push({ note, stringOpen, stringLabel: string.full });
+      steps.push(stepOnString(note, schedule));
     }
     word = { name: pool.length === 1 ? `Find ${pool[0]}` : 'Your note mix', steps };
   }

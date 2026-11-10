@@ -176,7 +176,8 @@ function showIdle(message = state.studyFilter === 'hidden' ? 'Tap any fret to re
 }
 function updateTimer() {
   if (!state.session || state.session.status !== 'active') return;
-  if (isGuitarPractice()) { $('sessionTimer').textContent = 'No timer'; return; }
+  if (isGuitarPractice() && !state.session.config.microphoneTimed) { $('sessionTimer').textContent = 'No timer'; return; }
+  if (isGuitarPractice() && $('guitarMicNoteTime')) $('guitarMicNoteTime').textContent = state.locked ? 'Complete' : `${Math.max(0, (performance.now() - state.promptStartedMono) / 1000).toFixed(1)}s`;
   const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(state.session.startedAt)) / 1000));
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor(seconds % 3600 / 60);
@@ -249,7 +250,7 @@ async function endSession() {
   queueSave();
   await state.saveQueue;
   state.session = null;
-  $('sessionTimer').textContent = isGuitarPractice(finished) ? 'No timer' : `${Math.floor(finished.summary.durationMs / 60000).toString().padStart(2, '0')}:${Math.floor(finished.summary.durationMs % 60000 / 1000).toString().padStart(2, '0')}`;
+  $('sessionTimer').textContent = isGuitarPractice(finished) && !finished.config.microphoneTimed ? 'No timer' : `${Math.floor(finished.summary.durationMs / 60000).toString().padStart(2, '0')}:${Math.floor(finished.summary.durationMs % 60000 / 1000).toString().padStart(2, '0')}`;
   showIdle(`Session saved. ${isGuitarPractice(finished) ? 'Guitar practice' : 'Timed practice'} accuracy: ${finished.summary.accuracy === null ? '—' : `${finished.summary.accuracy}%`}. Your history is below.`);
   $(isGuitarPractice(finished) ? 'guitarScoreStatus' : 'sessionStatus').textContent = 'Saved';
   renderDashboard();
@@ -560,7 +561,7 @@ function configKey(config) { return JSON.stringify({ maxFret: config.maxFret, st
 function configLabel(config) {
   const strings = STRINGS.filter(string => config.selectedStrings.includes(string.open)).map(string => string.full).join(', ');
   const notes = config.selectedNotes.length === 12 ? 'all notes' : config.selectedNotes.join(', ');
-  return `${config.mode === 'guitar' ? 'Guitar practice' : 'Timed'} · ${strings} · frets 0–${config.maxFret} · ${notes} · ${config.deck === 'random' ? 'note mix' : 'shapes'} · ${config.wordLength ? `${config.wordLength} notes/word` : 'original word lengths'}`;
+  return `${config.mode === 'guitar' ? config.microphoneTimed ? 'Guitar · microphone timed' : 'Guitar practice' : 'Timed'} · ${strings} · frets 0–${config.maxFret} · ${notes} · ${config.deck === 'random' ? 'note mix' : 'shapes'} · ${config.wordLength ? `${config.wordLength} notes/word` : 'original word lengths'}`;
 }
 function formatDate(value) { return new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
 function formatTime(ms) { return ms === null || !Number.isFinite(ms) ? '—' : `${(ms / 1000).toFixed(1)}s`; }
@@ -753,9 +754,9 @@ function normalizeImportedSession(value) {
     if (!prompt || !NOTES.includes(prompt.note) || !Array.isArray(prompt.answers) || prompt.answers.length > 1000) return null;
     const string = STRINGS.find(item => item.open === prompt.stringOpen);
     if (prompt.stringOpen !== null && !string) return null;
-    prompts.push({ id: String(prompt.id || ''), wordName: String(prompt.wordName || 'Note word'), note: prompt.note, stringOpen: prompt.stringOpen, stringLabel: string?.full || null, shownAt: String(prompt.shownAt || value.startedAt), answers: prompt.answers.filter(answer => answer && NOTES.includes(answer.note) && STRINGS.some(item => item.open === answer.stringOpen) && Number.isInteger(answer.fret) && answer.fret >= 0 && answer.fret <= 12 && ((Number.isFinite(answer.responseMs) && answer.responseMs >= 0) || (config.mode === 'guitar' && answer.responseMs === null)) && typeof answer.correct === 'boolean').map(answer => ({ at: String(answer.at || ''), note: answer.note, stringOpen: answer.stringOpen, fret: answer.fret, midi: Number(answer.midi) || 0, correct: answer.correct, responseMs: answer.responseMs })) });
+    prompts.push({ id: String(prompt.id || ''), wordName: String(prompt.wordName || 'Note word'), note: prompt.note, stringOpen: prompt.stringOpen, stringLabel: string?.full || null, shownAt: String(prompt.shownAt || value.startedAt), answers: prompt.answers.filter(answer => answer && NOTES.includes(answer.note) && STRINGS.some(item => item.open === answer.stringOpen) && Number.isInteger(answer.fret) && answer.fret >= 0 && answer.fret <= 12 && ((Number.isFinite(answer.responseMs) && answer.responseMs >= 0) || (config.mode === 'guitar' && answer.responseMs === null)) && typeof answer.correct === 'boolean').map(answer => ({ at: String(answer.at || ''), note: answer.note, stringOpen: answer.stringOpen, fret: answer.fret, midi: Number(answer.midi) || 0, input: answer.input === 'microphone' ? 'microphone' : 'tap', correct: answer.correct, responseMs: answer.responseMs })) });
   }
-  const session = { id: value.id, status: 'finished', startedAt: value.startedAt, endedAt: value.endedAt, config: { range: ['starter', 'middle', 'full', 'custom'].includes(config.range) ? config.range : 'custom', maxFret: config.maxFret, selectedStrings, selectedNotes, deck: config.deck === 'random' ? 'random' : 'familiar', wordLength: [2, 3, 4, 5, 6].includes(config.wordLength) ? config.wordLength : null, mode: config.mode === 'guitar' ? 'guitar' : 'timed' }, prompts, completedWords: Math.max(0, Math.floor(Number(value.completedWords) || 0)), currentWord: null, currentIndex: 0 };
+  const session = { id: value.id, status: 'finished', startedAt: value.startedAt, endedAt: value.endedAt, config: { range: ['starter', 'middle', 'full', 'custom'].includes(config.range) ? config.range : 'custom', maxFret: config.maxFret, selectedStrings, selectedNotes, deck: config.deck === 'random' ? 'random' : 'familiar', wordLength: [2, 3, 4, 5, 6].includes(config.wordLength) ? config.wordLength : null, mode: config.mode === 'guitar' ? 'guitar' : 'timed', microphoneTimed: config.mode === 'guitar' && config.microphoneTimed === true }, prompts, completedWords: Math.max(0, Math.floor(Number(value.completedWords) || 0)), currentWord: null, currentIndex: 0 };
   session.summary = sessionSummary(session);
   return session;
 }

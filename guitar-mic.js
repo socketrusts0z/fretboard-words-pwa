@@ -28,15 +28,17 @@ async function startGuitarMic() {
     analyser.fftSize=8192;mute.gain.value=0;source.connect(analyser);analyser.connect(mute);mute.connect(context.destination);
     const samples=new Float32Array(8192);guitarMic.running=true;guitarMic.consumed=null;
     $('guitarMicToggle').textContent='Stop microphone';
+    state.session.config.microphoneTimed=true;queueSave();updateTimer();
     function tick(now){
       if(!guitarMic.running)return;
       if(now-guitarMic.last>70){
         guitarMic.last=now;analyser.getFloatTimeDomainData(samples);
         let power=0;for(const x of samples)power+=x*x;const rms=Math.sqrt(power/samples.length);
         $('guitarMicLevel').value=Math.min(1,rms*16);
-        const p=detectPitch(samples,context.sampleRate);
+        const minRms={normal:.0007,high:.00025,maximum:.00008}[$('guitarMicSensitivity').value] ?? .00025;
+        const p=detectPitch(samples,context.sampleRate,{minRms});
         if(!p){guitarMic.count=0;guitarMic.candidate=null;if(!guitarMic.quietSince)guitarMic.quietSince=now;if(now-guitarMic.quietSince>220)guitarMic.consumed=null;
-          $('guitarMicReadout').textContent=rms<.0007?'Input very quiet · move closer to the microphone.':'Listening for a clear pitch · mute the other strings.';
+          $('guitarMicReadout').textContent=rms<minRms?'Input very quiet · move closer to the microphone.':'Listening for a clear pitch · mute the other strings.';
         }else{
           guitarMic.quietSince=0;const midiFloat=69+12*Math.log2(p.frequency/440),midi=Math.round(midiFloat),cents=Math.round(100*(midiFloat-midi));
           guitarMic.count=guitarMic.candidate===midi?guitarMic.count+1:1;guitarMic.candidate=midi;

@@ -1,8 +1,8 @@
 /* YIN on a downsampled signal; no trained parameters. */
-function detectPitch(input, sampleRate) {
+function detectPitch(input, sampleRate, options = {}) {
  let mean=0;for(const v of input)mean+=v;mean/=input.length;
  let energy=0;for(const v of input)energy+=(v-mean)**2;
- const rms=Math.sqrt(energy/input.length);if(rms<0.0007)return null;
+ const rms=Math.sqrt(energy/input.length);if(rms<(options.minRms ?? 0.0007))return null;
  // Average adjacent samples before decimation to reduce work and high-frequency noise.
  const stride=Math.max(1,Math.floor(sampleRate/12000)),rate=sampleRate/stride;
  const x=new Float32Array(Math.floor(input.length/stride));

@@ -76,3 +76,5 @@
 .mic-details summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .mic-details p{margin:10px 0 0;font-size:12px;line-height:1.7}
 @media(max-width:650px){.mic-footer{display:block}.mic-details{margin-top:10px}#guitarMicPanel .focus-heading{gap:14px}}
+
+.mic-settings{margin:0 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}.mic-settings label{font-size:12px;color:#a9c2b0}.mic-settings select{max-width:100%;min-width:0;background:#22362e;color:var(--text);border:1px solid #557064;border-radius:8px;padding:9px;font-size:13px}.mic-settings p{flex-basis:100%;margin:0;color:#a9bcb0;font-size:12px;line-height:1.6}.mic-timing{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 14px;margin:0 0 18px;font-size:13px;color:#c2d3c6}.mic-timing strong{color:var(--yellow);font-variant-numeric:tabular-nums}.mic-timing span{flex-basis:100%;font-size:12px;color:#a9bcb0}

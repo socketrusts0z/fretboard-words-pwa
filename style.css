@@ -62,4 +62,17 @@
 .history-column{display:grid;align-content:start;gap:15px;min-width:0}
 @media(min-width:651px){.guitar-speed-card{grid-column:1/-1}}
 
-#guitarMicPanel[hidden]{display:none} #guitarMicLevel{width:min(240px,65%);height:16px} #guitarMicReadout{font-variant-numeric:tabular-nums}
+#guitarMicPanel[hidden]{display:none}
+#guitarMicReadout{font-size:14px;line-height:1.6;font-variant-numeric:tabular-nums;margin:0 0 16px;color:var(--text);overflow-wrap:anywhere}
+.mic-input-row{display:flex;align-items:center;gap:16px;margin:0 0 20px}
+.mic-input-row label{font-size:12px;font-weight:600;color:#a9c2b0;flex-shrink:0}
+#guitarMicLevel{display:block;width:240px;max-width:100%;min-width:0;flex:0 1 240px;height:16px}
+.mic-help{padding-top:16px;border-top:1px solid #3b5147}
+.mic-help p{font-size:13px;line-height:1.7;color:#c2d3c6;margin:0}
+.mic-help p+p{margin-top:4px}
+.mic-footer{display:flex;align-items:baseline;justify-content:space-between;gap:12px 24px;margin-top:18px;flex-wrap:wrap}
+.mic-privacy{font-size:12px;color:var(--mint)}
+.mic-details{font-size:12px;line-height:1.7;color:#a9bcb0;flex:0 1 380px}
+.mic-details summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.mic-details p{margin:10px 0 0;font-size:12px;line-height:1.7}
+@media(max-width:650px){.mic-footer{display:block}.mic-details{margin-top:10px}#guitarMicPanel .focus-heading{gap:14px}}

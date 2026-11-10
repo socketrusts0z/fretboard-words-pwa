@@ -79,8 +79,9 @@
       <section id="guitarMicPanel" class="focus-panel" hidden aria-label="Microphone answers">
         <div class="focus-heading"><div><p class="panel-kicker">PLAY YOUR GUITAR</p><h2>Answer with your microphone</h2></div><button id="guitarMicToggle" class="secondary-button" type="button">Enable microphone</button></div>
         <p id="guitarMicReadout" role="status">Microphone off · fret taps still work.</p>
-        <label for="guitarMicLevel">Input level</label> <meter id="guitarMicLevel" min="0" max="1" value="0" aria-label="Microphone input level"></meter>
-        <p class="analysis-caption">Play one note at a time. A stable matching pitch advances the prompt. Mute briefly before repeating the same note. Audio stays on this device. Pitch verifies the note and octave, not which string you used; string statistics assume you followed the prompt. Unmatched sounds do not count as wrong answers.</p>
+        <div class="mic-input-row"><label for="guitarMicLevel">Input level</label><meter id="guitarMicLevel" min="0" max="1" value="0" aria-label="Microphone input level"></meter></div>
+        <div class="mic-help"><p>Play one note at a time. A stable matching pitch advances the prompt.</p><p>Mute briefly before repeating the same note.</p></div>
+        <div class="mic-footer"><span class="mic-privacy">Audio stays on your device</span><details class="mic-details"><summary>How answers are checked</summary><p>Pitch verifies the note and octave. It cannot identify which string you used, so string statistics assume you followed the prompt. Unmatched sounds do not count as wrong answers.</p></details></div>
       </section>
       <div class="prompt-panel">
         <div class="prompt-heading"><div><p class="panel-kicker">CURRENT WORD</p><h2 id="wordName">Ready to practice</h2></div><span id="wordNumber" class="word-number">PRESS START</span></div>

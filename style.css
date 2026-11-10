@@ -62,19 +62,25 @@
 .history-column{display:grid;align-content:start;gap:15px;min-width:0}
 @media(min-width:651px){.guitar-speed-card{grid-column:1/-1}}
 
+/* Microphone panel shares the practice controls' typography and spacing. */
 #guitarMicPanel[hidden]{display:none}
-#guitarMicReadout{font-size:14px;line-height:1.6;font-variant-numeric:tabular-nums;margin:0 0 16px;color:var(--text);overflow-wrap:anywhere}
-.mic-input-row{display:flex;align-items:center;gap:16px;margin:0 0 20px}
-.mic-input-row label{font-size:12px;font-weight:600;color:#a9c2b0;flex-shrink:0}
-#guitarMicLevel{display:block;width:240px;max-width:100%;min-width:0;flex:0 1 240px;height:16px}
-.mic-help{padding-top:16px;border-top:1px solid #3b5147}
-.mic-help p{font-size:13px;line-height:1.7;color:#c2d3c6;margin:0}
+#guitarMicPanel{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+#guitarMicPanel .focus-heading{margin-bottom:20px}
+.mic-live-row{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:16px 18px;margin-bottom:20px;border:1px solid #3c534b;border-radius:10px;background:#22372e}
+#guitarMicReadout{font:400 13px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#bfcdc2;margin:0;overflow-wrap:anywhere;min-width:0}
+.mic-note-clock{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.mic-note-clock .panel-kicker{margin:0;font-size:10px;letter-spacing:.12em}
+.mic-note-clock strong{font:600 22px/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--yellow);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.mic-controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px}
+#guitarMicPanel .control-group label{font-size:11px;line-height:1.4;font-weight:700;letter-spacing:.17em}
+#guitarMicPanel .control-group select{font-family:inherit;font-size:13px;line-height:20px;font-weight:400}
+.mic-meter-wrap{display:flex;align-items:center;height:48px;padding:0 14px;background:#21362f;border:1px solid #4b6359;border-radius:10px}
+#guitarMicLevel{display:block;width:100%;height:12px;accent-color:var(--mint)}
+#guitarMicPanel .mic-caption{font:400 12px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#a7baab;margin:9px 0 0}
+.mic-help{border-top:1px solid #3b5147;padding-top:16px}
+.mic-help p,.mic-details p{font:400 13px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#bccfc0;margin:0}
 .mic-help p+p{margin-top:4px}
-.mic-footer{display:flex;align-items:baseline;justify-content:space-between;gap:12px 24px;margin-top:18px;flex-wrap:wrap}
-.mic-privacy{font-size:12px;color:var(--mint)}
-.mic-details{font-size:12px;line-height:1.7;color:#a9bcb0;flex:0 1 380px}
-.mic-details summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.mic-details p{margin:10px 0 0;font-size:12px;line-height:1.7}
-@media(max-width:650px){.mic-footer{display:block}.mic-details{margin-top:10px}#guitarMicPanel .focus-heading{gap:14px}}
-
-.mic-settings{margin:0 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}.mic-settings label{font-size:12px;color:#a9c2b0}.mic-settings select{max-width:100%;min-width:0;background:#22362e;color:var(--text);border:1px solid #557064;border-radius:8px;padding:9px;font-size:13px}.mic-settings p{flex-basis:100%;margin:0;color:#a9bcb0;font-size:12px;line-height:1.6}.mic-timing{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 14px;margin:0 0 18px;font-size:13px;color:#c2d3c6}.mic-timing strong{color:var(--yellow);font-variant-numeric:tabular-nums}.mic-timing span{flex-basis:100%;font-size:12px;color:#a9bcb0}
+.mic-details{margin-top:14px;color:var(--mint)}
+.mic-details summary{font:600 12px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;width:fit-content}
+.mic-details p{max-width:75ch;margin-top:10px;color:#a7baab;font-size:12px}
+@media(max-width:650px){#guitarMicPanel .focus-heading{gap:14px}.mic-controls-grid{grid-template-columns:1fr;gap:18px}.mic-live-row{align-items:flex-start;flex-direction:column;gap:12px;padding:14px}.mic-note-clock strong{font-size:20px}}

@@ -78,12 +78,13 @@
 
       <section id="guitarMicPanel" class="focus-panel" hidden aria-label="Microphone answers">
         <div class="focus-heading"><div><p class="panel-kicker">PLAY YOUR GUITAR</p><h2>Answer with your microphone</h2></div><button id="guitarMicToggle" class="secondary-button" type="button">Enable microphone</button></div>
-        <p id="guitarMicReadout" role="status">Microphone off · fret taps still work.</p>
-        <div class="mic-input-row"><label for="guitarMicLevel">Input level</label><meter id="guitarMicLevel" min="0" max="1" value="0" aria-label="Microphone input level"></meter></div>
-        <div class="mic-settings"><label for="guitarMicSensitivity">Microphone sensitivity</label><select id="guitarMicSensitivity"><option value="normal">Normal · quieter room</option><option value="high" selected>High · quiet guitar</option><option value="maximum">Maximum · very quiet input</option></select><p>Raise sensitivity if soft notes are missed. Lower it if background noise registers.</p></div>
-        <p class="mic-timing">Current note <strong id="guitarMicNoteTime">0.0s</strong><span>Session timer includes time since you started practice.</span></p>
-        <div class="mic-help"><p>Play one note at a time. A stable matching pitch advances the prompt.</p><p>Mute briefly before repeating the same note.</p></div>
-        <div class="mic-footer"><span class="mic-privacy">Audio stays on your device</span><details class="mic-details"><summary>How answers are checked</summary><p>Pitch verifies the note and octave. It cannot identify which string you used, so string statistics assume you followed the prompt. Unmatched sounds do not count as wrong answers.</p></details></div>
+        <div class="mic-live-row"><p id="guitarMicReadout" role="status">Microphone off · fret taps still work.</p><div class="mic-note-clock"><span class="panel-kicker">CURRENT NOTE</span><strong id="guitarMicNoteTime">0.0s</strong></div></div>
+        <div class="mic-controls-grid">
+          <div class="control-group"><label for="guitarMicSensitivity">SENSITIVITY</label><select id="guitarMicSensitivity"><option value="normal">Normal</option><option value="high" selected>High · quiet guitar</option><option value="maximum">Maximum · very quiet input</option></select><p class="mic-caption">Increase for soft notes; lower for background noise.</p></div>
+          <div class="control-group"><label for="guitarMicLevel">INPUT LEVEL</label><div class="mic-meter-wrap"><meter id="guitarMicLevel" min="0" max="1" value="0" aria-label="Microphone input level"></meter></div><p class="mic-caption">The session clock counts from the start of practice.</p></div>
+        </div>
+        <div class="mic-help"><p>Play one note at a time. Mute briefly before repeating a note.</p><p>A matching note advances the prompt. Audio stays on your device.</p></div>
+        <details class="mic-details"><summary>How answers are checked</summary><p>Pitch verifies the note and octave. It cannot identify which string you used, so string statistics assume you followed the prompt. Unmatched sounds do not count as wrong answers.</p></details>
       </section>
       <div class="prompt-panel">
         <div class="prompt-heading"><div><p class="panel-kicker">CURRENT WORD</p><h2 id="wordName">Ready to practice</h2></div><span id="wordNumber" class="word-number">PRESS START</span></div>

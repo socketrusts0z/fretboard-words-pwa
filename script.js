@@ -125,7 +125,7 @@ function stepOnString(note, schedule) {
 }
 function configSnapshot(mode) { return { range: state.range, maxFret: state.maxFret, selectedStrings: [...state.selectedStrings], selectedNotes: [...state.selectedNotes], deck: state.deck, wordLength: state.wordLength, mode }; }
 function isGuitarPractice(session = state.session) { return session?.config?.mode === 'guitar'; }
-function promptInstruction(step) { return isGuitarPractice() ? `Play ${describeStep(step)} on your guitar, then tap the matching fret here.` : `Find ${describeStep(step)}. Tap the matching fret.`; }
+function promptInstruction(step) { return isGuitarPractice() ? `Play ${describeStep(step)} on your guitar, enable the microphone or tap the matching fret here.` : `Find ${describeStep(step)}. Tap the matching fret.`; }
 function sessionSummary(session) {
   const prompts = (session.prompts || []).filter(prompt => prompt.answers?.length);
   const answers = prompts.flatMap(prompt => prompt.answers);
@@ -140,6 +140,7 @@ function resetLiveStats(mode = 'timed') {
   updateStats(mode);
 }
 function updateControls() {
+  if (typeof syncGuitarMic === 'function') syncGuitarMic();
   const active = !!state.session && state.session.status === 'active';
   $('startSession').hidden = active;
   $('startGuitarSession').hidden = active;
@@ -472,6 +473,7 @@ function clearBoardMarkers() {
   });
 }
 async function play(midi) {
+  if (typeof guitarMic !== 'undefined' && guitarMic.running) { guitarMic.ignoreUntil = performance.now() + 750; }
   if (!state.sound) return;
   try {
     const Context = window.AudioContext || window.webkitAudioContext;
@@ -500,7 +502,7 @@ function updateStats(mode = isGuitarPractice() ? 'guitar' : 'timed') {
   $(mode === 'guitar' ? 'guitarAccuracy' : 'accuracy').textContent = state.attempts ? `${Math.round(state.hits / state.attempts * 100)}%` : '—';
   $(mode === 'guitar' ? 'guitarStreak' : 'streak').textContent = state.best;
 }
-function answer(button) {
+function answer(button, input = 'tap') {
   if (!state.session) {
     const note = button.dataset.note;
     button.textContent = note;
@@ -516,9 +518,9 @@ function answer(button) {
   const target = state.word.steps[state.index];
   const correct = button.dataset.inPractice === 'true' && played === target.note && (target.stringOpen === null || Number(button.dataset.stringOpen) === target.stringOpen);
   const prompt = state.session.prompts[state.session.prompts.length - 1];
-  prompt.answers.push({ at: new Date().toISOString(), note: played, stringOpen: Number(button.dataset.stringOpen), fret: Number(button.dataset.fret), midi: Number(button.dataset.midi), correct, responseMs: Math.max(0, Math.round(performance.now() - state.promptStartedMono)) });
+  prompt.answers.push({ at: new Date().toISOString(), note: played, stringOpen: Number(button.dataset.stringOpen), fret: Number(button.dataset.fret), midi: Number(button.dataset.midi), input, correct, responseMs: Math.max(0, Math.round(performance.now() - state.promptStartedMono)) });
   state.attempts++;
-  play(Number(button.dataset.midi));
+  if (input === 'tap') play(Number(button.dataset.midi));
   if (!correct) {
     state.streak = 0;
     button.classList.add('wrong');
@@ -682,7 +684,7 @@ function renderHistory(sessions, rootId) {
     heading.append(left, createElement('b', '', metrics.accuracy === null ? '—' : `${metrics.accuracy}%`));
     item.append(heading);
     const detail = createElement('div', 'history-details');
-    detail.append(createElement('p', '', `${metrics.completedWords} words · ${metrics.attempts} taps · ${metrics.firstTry ?? '—'}% first try · ${formatTime(metrics.medianMs)} median${isGuitarPractice(session) ? ' prompt-to-tap' : ''} · ${Math.round(metrics.durationMs / 1000)}s session`));
+    detail.append(createElement('p', '', `${metrics.completedWords} words · ${metrics.attempts} answers · ${metrics.firstTry ?? '—'}% first try · ${formatTime(metrics.medianMs)} median${isGuitarPractice(session) ? ' prompt-to-answer' : ''} · ${Math.round(metrics.durationMs / 1000)}s session`));
     session.prompts.forEach(prompt => {
       const target = prompt.stringOpen === null ? `${prompt.note} on any selected string` : `${prompt.note} on ${prompt.stringLabel}`;
       const row = createElement('div', 'trial-row');
@@ -717,7 +719,7 @@ function renderDashboard() {
     [String(selected.length), 'finished sessions'],
     [answers.length ? `${Math.round(answers.filter(answer => answer.correct).length / answers.length * 100)}%` : '—', 'overall accuracy'],
     [prompts.length ? `${Math.round(prompts.filter(prompt => prompt.answers[0].correct).length / prompts.length * 100)}%` : '—', 'first-try accuracy'],
-    [formatTime(median), guitarOnly ? 'median prompt-to-tap · guitar' : 'median time · timed sessions']
+    [formatTime(median), guitarOnly ? 'median prompt-to-answer · guitar' : 'median time · timed sessions']
   ];
   $('dashboardSummary').replaceChildren(...overall.map(([value, label]) => { const tile = createElement('div', 'summary-tile'); tile.append(createElement('strong', '', value), createElement('span', '', label)); return tile; }));
   renderBarChart('accuracyChart', selected, 'accuracy');

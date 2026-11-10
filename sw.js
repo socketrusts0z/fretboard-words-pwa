@@ -1,10 +1,12 @@
-const CACHE_NAME = 'fretboard-words-v17';
+const CACHE_NAME = 'fretboard-words-v18';
 const APP_URL = new URL('./', self.registration.scope).toString();
 const OFFLINE_FILES = [
   APP_URL,
   new URL('index.html', APP_URL).toString(),
   new URL('style.css', APP_URL).toString(),
   new URL('script.js', APP_URL).toString(),
+  new URL('pitch.js', APP_URL).toString(),
+  new URL('guitar-mic.js', APP_URL).toString(),
   new URL('pwa.js', APP_URL).toString(),
   new URL('manifest.webmanifest', APP_URL).toString(),
   new URL('icon-192.png', APP_URL).toString(),

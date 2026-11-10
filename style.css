@@ -61,3 +61,5 @@
 @media(max-width:650px){.bottom-grid{grid-template-columns:minmax(0,1fr)}.bottom-grid .how-card{grid-column:auto}}
 .history-column{display:grid;align-content:start;gap:15px;min-width:0}
 @media(min-width:651px){.guitar-speed-card{grid-column:1/-1}}
+
+#guitarMicPanel[hidden]{display:none} #guitarMicLevel{width:min(240px,65%);height:16px} #guitarMicReadout{font-variant-numeric:tabular-nums}
